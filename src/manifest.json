@@ -1,0 +1,29 @@
+{
+  "manifest_version": 3,
+  "name": "ServiceNow Triage Copilot Pro",
+  "version": "2.0.0",
+  "description": "Premium AI-powered ServiceNow ticket analysis - Front/UX classification",
+  "permissions": [
+    "storage",
+    "activeTab",
+    "scripting",
+    "tabs"
+  ],
+  "host_permissions": [
+    "https://*.service-now.com/*",
+    "https://api.openai.com/*"
+  ],
+  "background": {
+    "service_worker": "background.js"
+  },
+  "content_scripts": [
+    {
+      "matches": ["https://*.service-now.com/*"],
+      "js": ["content.js"],
+      "run_at": "document_idle"
+    }
+  ],
+  "action": {
+    "default_popup": "popup.html"
+  }
+}
