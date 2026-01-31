@@ -1,73 +1,54 @@
-# React + TypeScript + Vite
-
-This template provides a minimal setup to get React working in Vite with HMR and some ESLint rules.
-
-Currently, two official plugins are available:
-
-- [@vitejs/plugin-react](https://github.com/vitejs/vite-plugin-react/blob/main/packages/plugin-react) uses [Babel](https://babeljs.io/) (or [oxc](https://oxc.rs) when used in [rolldown-vite](https://vite.dev/guide/rolldown)) for Fast Refresh
-- [@vitejs/plugin-react-swc](https://github.com/vitejs/vite-plugin-react/blob/main/packages/plugin-react-swc) uses [SWC](https://swc.rs/) for Fast Refresh
-
-## React Compiler
-
-The React Compiler is not enabled on this template because of its impact on dev & build performances. To add it, see [this documentation](https://react.dev/learn/react-compiler/installation).
-
-## Expanding the ESLint configuration
-
-If you are developing a production application, we recommend updating the configuration to enable type-aware lint rules:
-
-```js
-export default defineConfig([
-  globalIgnores(['dist']),
-  {
-    files: ['**/*.{ts,tsx}'],
-    extends: [
-      // Other configs...
-
-      // Remove tseslint.configs.recommended and replace with this
-      tseslint.configs.recommendedTypeChecked,
-      // Alternatively, use this for stricter rules
-      tseslint.configs.strictTypeChecked,
-      // Optionally, add this for stylistic rules
-      tseslint.configs.stylisticTypeChecked,
-
-      // Other configs...
-    ],
-    languageOptions: {
-      parserOptions: {
-        project: ['./tsconfig.node.json', './tsconfig.app.json'],
-        tsconfigRootDir: import.meta.dirname,
-      },
-      // other options...
-    },
-  },
-])
-```
-
-You can also install [eslint-plugin-react-x](https://github.com/Rel1cx/eslint-react/tree/main/packages/plugins/eslint-plugin-react-x) and [eslint-plugin-react-dom](https://github.com/Rel1cx/eslint-react/tree/main/packages/plugins/eslint-plugin-react-dom) for React-specific lint rules:
-
-```js
-// eslint.config.js
-import reactX from 'eslint-plugin-react-x'
-import reactDom from 'eslint-plugin-react-dom'
-
-export default defineConfig([
-  globalIgnores(['dist']),
-  {
-    files: ['**/*.{ts,tsx}'],
-    extends: [
-      // Other configs...
-      // Enable lint rules for React
-      reactX.configs['recommended-typescript'],
-      // Enable lint rules for React DOM
-      reactDom.configs.recommended,
-    ],
-    languageOptions: {
-      parserOptions: {
-        project: ['./tsconfig.node.json', './tsconfig.app.json'],
-        tsconfigRootDir: import.meta.dirname,
-      },
-      // other options...
-    },
-  },
-])
-```
+# ServiceNow Triage Copilot Pro
+ 
+ Chrome Extension (Manifest V3) para extraer tickets desde listas de ServiceNow y generar un informe con IA enfocado en **FRONTEND** o **UX/DISEÑO**.
+ 
+ ## Estado
+ 
+ - **Versión**: 2.0.0
+ - **Modo**: Premium
+ 
+ ## Features
+ 
+ - Extracción de tickets desde ServiceNow (`*_list.do`).
+ - Análisis con OpenAI (modelo `gpt-4o-mini`) para clasificar tareas **Front** vs **UX/Diseño**.
+ - Botón para **copiar el informe** al portapapeles.
+ - Botones de test: validación de API Key y test directo a OpenAI.
+ 
+ ## Instalación (Load unpacked)
+ 
+ 1. Abre `chrome://extensions/`.
+ 2. Activa **Developer mode**.
+ 3. Click en **Load unpacked**.
+ 4. Selecciona la carpeta del proyecto (la raíz que contiene `src/manifest.json`).
+ 
+ ## Uso
+ 
+ 1. Entra a ServiceNow y abre una lista de tickets (por ejemplo `incident_list.do`).
+ 2. Abre el popup de la extensión.
+ 3. Click en **🎨 Analizar Front/UX**.
+ 4. Opcional: **📋 Copiar Informe**.
+ 
+ ## API Key (OpenAI)
+ 
+ - La API key se solicita en el popup si no existe.
+ - Se guarda localmente usando `chrome.storage.local` bajo la clave `OPENAI_API_KEY`.
+ - No se guarda en el repositorio.
+ 
+ ## Debugging
+ 
+ - **Popup logs**: click derecho sobre el popup -> **Inspect**.
+ - **Background logs**: `chrome://extensions/` -> la extensión -> **Service worker** -> Inspect.
+ 
+ ## Seguridad / Privacidad
+ 
+ - El contenido enviado a OpenAI es un resumen textual de los tickets visibles en la lista.
+ - Evita ejecutar la extensión sobre listas que contengan información sensible que no debas enviar a terceros.
+ 
+ ## Solución de problemas
+ 
+ - Verifica que la API key esté configurada correctamente.
+ - Revisa los logs para identificar errores.
+ 
+ ## Licencia
+ 
+ Este repositorio es **propietario**. Ver archivo `LICENSE`.
