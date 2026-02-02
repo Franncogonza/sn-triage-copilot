@@ -12,17 +12,66 @@ document.addEventListener('DOMContentLoaded', async () => {
     const ticketsCount = document.getElementById('tickets-count');
     const ticketsList = document.getElementById('tickets-list');
     const actions = document.getElementById('actions');
-    const analyzeBtn = document.getElementById('analyze-btn');
-    const testApiBtn = document.getElementById('test-api-btn');
-    const testDirectBtn = document.getElementById('test-direct-btn');
+    const generateReportBtn = document.getElementById('generate-report-btn');
+    const aiAnalysisBtn = document.getElementById('ai-analysis-btn');
+    const facturaBtn = document.getElementById('factura-btn');
     const copyReportBtn = document.getElementById('copy-report-btn');
     const refreshBtn = document.getElementById('refresh-btn');
+    const settingsBtn = document.getElementById('settings-btn');
     const analysisResult = document.getElementById('analysis-result');
+    const settingsPanel = document.getElementById('settings-panel');
+    const saveSettingsBtn = document.getElementById('save-settings-btn');
+    const cancelSettingsBtn = document.getElementById('cancel-settings-btn');
+    const configNombre = document.getElementById('config-nombre');
+    const configDestinatario = document.getElementById('config-destinatario');
+    const configCc = document.getElementById('config-cc');
+    const configCuentaIndex = document.getElementById('config-cuenta-index');
 
     // =====================
     // State
     // =====================
     let currentTickets = [];
+    let facturaConfig = {
+        nombre: 'Franco Gonzalez',
+        destinatario: 'Mdprocurement@mindata.es',
+        cc: 'gonzalez.francodavid@hotmail.com',
+        cuentaIndex: 2
+    };
+
+    // =====================
+    // Utilities
+    // =====================
+    function removeAccents(str) {
+        return str.replace(/á/g, 'a')
+                 .replace(/é/g, 'e')
+                 .replace(/í/g, 'i')
+                 .replace(/ó/g, 'o')
+                 .replace(/ú/g, 'u')
+                 .replace(/ñ/g, 'n');
+    }
+
+    function countTicketsByState(tickets) {
+        const counts = {
+            pruebaSuperada: 0,
+            pendienteAclaracion: 0,
+            pendienteUATest: 0,
+            abierto: 0,
+            enCurso: 0,
+            rechazado: 0
+        };
+
+        tickets.forEach(t => {
+            const stateNorm = removeAccents((t.state || '').toLowerCase());
+            if (stateNorm.includes('superada')) counts.pruebaSuperada++;
+            else if (stateNorm.includes('pendiente de aclarac')) counts.pendienteAclaracion++;
+            else if (stateNorm.includes('ua-test') || stateNorm.includes('uat')) counts.pendienteUATest++;
+            else if (stateNorm.includes('abierto')) counts.abierto++;
+            else if (stateNorm.includes('en curso')) counts.enCurso++;
+            else if (stateNorm.includes('rechazado')) counts.rechazado++;
+        });
+
+        return counts;
+    }
 
     // =====================
     // Helpers
@@ -42,27 +91,30 @@ document.addEventListener('DOMContentLoaded', async () => {
         return 'prio-low';
     };
 
-    const getApiKey = async () => {
-        let apiKey = '';
-        try {
-            const stored = await chrome.storage.local.get(['OPENAI_API_KEY']);
-            apiKey = stored.OPENAI_API_KEY || '';
-        } catch (e) {
-            console.warn('[Popup] No se pudo leer API key:', e);
-        }
-        
-        if (!apiKey) {
-            apiKey = prompt("🔑 Ingresa tu OpenAI API Key:");
-            if (apiKey) {
-                try {
-                    await chrome.storage.local.set({ OPENAI_API_KEY: apiKey });
-                } catch (e) {
-                    console.warn('[Popup] No se pudo guardar API key:', e);
-                }
+    async function getApiKey() {
+        const result = await chrome.storage.local.get('OPENAI_API_KEY');
+        if (!result.OPENAI_API_KEY) {
+            const key = prompt('🔑 Ingresá tu API Key de OpenAI:');
+            if (key) {
+                await chrome.storage.local.set({ OPENAI_API_KEY: key });
+                return key;
             }
+            setStatus('⚠️ API Key requerida', 'error');
+            return null;
         }
-        return apiKey;
-    };
+        return result.OPENAI_API_KEY;
+    }
+
+    async function loadFacturaConfig() {
+        const result = await chrome.storage.local.get('FACTURA_CONFIG');
+        if (result.FACTURA_CONFIG) {
+            facturaConfig = result.FACTURA_CONFIG;
+        }
+    }
+
+    async function saveFacturaConfig() {
+        await chrome.storage.local.set({ FACTURA_CONFIG: facturaConfig });
+    }
 
     // =====================
     // Core Functions
@@ -110,14 +162,38 @@ document.addEventListener('DOMContentLoaded', async () => {
         tickets.slice(0, 50).forEach(t => {
             const div = document.createElement('div');
             div.className = 'ticket-item';
-            div.innerHTML = `
-                <div style="display:flex; justify-content:space-between;">
-                    <a href="${t.link || '#'}" target="_blank" class="ticket-number-link">${t.number} 🔗</a>
-                    <span class="${getPrioClass(t.priority)}">${t.priority || ''}</span>
-                </div>
-                <div class="ticket-desc">${t.short_description || '(Sin título)'}</div>
-                <div class="ticket-meta">${t.state || '-'} | 👤 ${t.assigned_to || 'Sin asignar'}</div>
-            `;
+            
+            // Header con link y prioridad
+            const header = document.createElement('div');
+            header.style.display = 'flex';
+            header.style.justifyContent = 'space-between';
+            
+            const link = document.createElement('a');
+            link.href = t.link || '#';
+            link.target = '_blank';
+            link.className = 'ticket-number-link';
+            link.textContent = `${t.number} 🔗`;
+            
+            const prio = document.createElement('span');
+            prio.className = getPrioClass(t.priority);
+            prio.textContent = t.priority || '';
+            
+            header.appendChild(link);
+            header.appendChild(prio);
+            
+            // Descripción
+            const desc = document.createElement('div');
+            desc.className = 'ticket-desc';
+            desc.textContent = t.short_description || '(Sin título)';
+            
+            // Metadata
+            const meta = document.createElement('div');
+            meta.className = 'ticket-meta';
+            meta.textContent = `${t.state || '-'} | 👤 ${t.assigned_to || 'Sin asignar'}`;
+            
+            div.appendChild(header);
+            div.appendChild(desc);
+            div.appendChild(meta);
             ticketsList.appendChild(div);
         });
         ticketsSection.style.display = 'block';
@@ -127,10 +203,9 @@ document.addEventListener('DOMContentLoaded', async () => {
         const apiKey = await getApiKey();
         if (!apiKey) return;
 
-        setStatus(`🤖 Analizando: ${title}...`, 'loading');
-        analyzeBtn.disabled = true;
-        testApiBtn.disabled = true;
-        testDirectBtn.disabled = true;
+        setStatus(`🤖 Generando: ${title}...`, 'loading');
+        generateReportBtn.disabled = true;
+        aiAnalysisBtn.disabled = true;
         analysisResult.style.display = 'none';
 
         try {
@@ -153,7 +228,8 @@ document.addEventListener('DOMContentLoaded', async () => {
 
             if (response?.success) {
                 setStatus('✅ Análisis completado', 'success');
-                analysisResult.innerHTML = `<b>${title}:</b><br/><br/>${response.analysis.replace(/\n/g, '<br>')}`;
+                analysisResult.style.whiteSpace = 'pre-wrap';
+                analysisResult.textContent = response.analysis;
                 analysisResult.style.display = 'block';
             } else {
                 throw new Error(response?.error || 'Error desconocido');
@@ -161,12 +237,12 @@ document.addEventListener('DOMContentLoaded', async () => {
         } catch (error) {
             console.error('[Popup] Error análisis:', error);
             setStatus('❌ Error: ' + error.message, 'error');
-            analysisResult.innerHTML = `<b>Error:</b><br/>${error.message}`;
+            analysisResult.style.whiteSpace = 'pre-wrap';
+            analysisResult.textContent = `Error: ${error.message}`;
             analysisResult.style.display = 'block';
         } finally {
-            analyzeBtn.disabled = false;
-            testApiBtn.disabled = false;
-            testDirectBtn.disabled = false;
+            generateReportBtn.disabled = false;
+            aiAnalysisBtn.disabled = false;
         }
     }
 
@@ -174,100 +250,153 @@ document.addEventListener('DOMContentLoaded', async () => {
     // Event Listeners
     // =====================
 
-    // Test API Key (via background)
-    testApiBtn.addEventListener('click', async () => {
-        const apiKey = await getApiKey();
-        if (!apiKey) return;
-
-        setStatus('🧪 Probando API Key...', 'loading');
-        testApiBtn.disabled = true;
-
-        chrome.runtime.sendMessage({
-            type: "ANALYZE_WITH_GPT",
-            prompt: "Responde exactamente: '✅ API funcionando correctamente'",
-            apiKey: apiKey
-        }, (response) => {
-            testApiBtn.disabled = false;
-            if (response?.success) {
-                setStatus('✅ API Key válida', 'success');
-                analysisResult.innerHTML = `<b>🧪 Test API:</b><br/><br/>✅ Conexión exitosa<br/><br/>${response.analysis}`;
-                analysisResult.style.display = 'block';
-            } else {
-                setStatus('❌ API Key inválida', 'error');
-                analysisResult.innerHTML = `<b>🧪 Test API:</b><br/><br/>❌ Error: ${response?.error || 'Desconocido'}`;
-                analysisResult.style.display = 'block';
-            }
-        });
-    });
-
-    // Test Direct (fetch desde popup)
-    testDirectBtn.addEventListener('click', async () => {
-        const apiKey = await getApiKey();
-        if (!apiKey) return;
-
-        setStatus('⚡ Test directo OpenAI...', 'loading');
-        testDirectBtn.disabled = true;
-
-        try {
-            const response = await fetch('https://api.openai.com/v1/chat/completions', {
-                method: 'POST',
-                headers: {
-                    'Content-Type': 'application/json',
-                    'Authorization': `Bearer ${apiKey}`
-                },
-                body: JSON.stringify({
-                    model: 'gpt-4o-mini',
-                    messages: [{ role: 'user', content: 'Responde: "✅ Test directo OK"' }],
-                    max_tokens: 50
-                })
-            });
-
-            const data = await response.json();
-            
-            if (data.error) throw new Error(data.error.message);
-            
-            setStatus('✅ Test directo exitoso', 'success');
-            analysisResult.innerHTML = `<b>⚡ Test Directo:</b><br/><br/>✅ Conexión OK<br/><br/>${data.choices[0].message.content}`;
-            analysisResult.style.display = 'block';
-        } catch (error) {
-            setStatus('❌ Error test directo', 'error');
-            analysisResult.innerHTML = `<b>⚡ Test Directo:</b><br/><br/>❌ ${error.message}`;
-            analysisResult.style.display = 'block';
-        } finally {
-            testDirectBtn.disabled = false;
-        }
-    });
-
-    // Analyze Front/UX
-    analyzeBtn.addEventListener('click', async () => {
+    // Generate Report - Conteo local sin GPT
+    generateReportBtn.addEventListener('click', async () => {
         if (currentTickets.length === 0) {
             setStatus('⚠️ No hay tickets para analizar', 'error');
             return;
         }
 
-        // Preparar resumen de tickets
-        const ticketsSummary = currentTickets.map(t => 
-            `[${t.number}] Estado: ${t.state || 'N/A'} | Prioridad: ${t.priority || 'N/A'} | Desc: ${(t.short_description || '').slice(0, 100)}`
+    const counts = countTicketsByState(currentTickets);
+    const total = currentTickets.length;
+    const suma = counts.pruebaSuperada + counts.pendienteAclaracion + counts.pendienteUATest + counts.abierto + counts.enCurso + counts.rechazado;
+    
+    const report = `📊 TOTAL: ${total}
+✅ Prueba Superada: ${counts.pruebaSuperada}
+❓ Pendiente de Aclaración: ${counts.pendienteAclaracion}
+⏳ Pendiente UA-Test: ${counts.pendienteUATest}
+🔴 Abierto: ${counts.abierto}
+🔵 En curso: ${counts.enCurso}
+❌ Rechazado: ${counts.rechazado}
+${suma !== total ? `\n⚠️ Sin clasificar: ${total - suma}` : ''}`;
+
+        setStatus('✅ Informe generado', 'success');
+        analysisResult.style.whiteSpace = 'pre-wrap';
+        analysisResult.textContent = `📊 Informe:\n\n${report}`;
+        analysisResult.style.display = 'block';
+    });
+
+    // AI Analysis
+    aiAnalysisBtn.addEventListener('click', async () => {
+        if (currentTickets.length === 0) {
+            setStatus('⚠️ No hay tickets para analizar', 'error');
+            return;
+        }
+
+        // Hacer conteo primero
+        const counts = countTicketsByState(currentTickets);
+
+        // Preparar datos para IA
+        const ticketsData = currentTickets.map(t => 
+            `${t.number}|${t.state}|${t.assigned_to || 'Sin asignar'}|${(t.short_description || '').slice(0, 80)}`
         ).join('\n');
 
-        const prompt = `Eres un experto en desarrollo web. Analiza estos ${currentTickets.length} tickets de ServiceNow y clasifica ÚNICAMENTE las tareas que son FRONTEND o UX/DISEÑO.
+        const prompt = `Genera un email ejecutivo profesional. Usa EXACTAMENTE estos números:
 
-TICKETS:
-${ticketsSummary}
+Total: ${currentTickets.length}
+✅ Prueba Superada: ${counts.pruebaSuperada}
+❓ Pendiente de Aclaración: ${counts.pendienteAclaracion}
+⏳ Pendiente UA-Test: ${counts.pendienteUATest}
+🔴 Abierto: ${counts.abierto}
+🔵 En curso: ${counts.enCurso}
+❌ Rechazado: ${counts.rechazado}
 
-INSTRUCCIONES:
-- Ignora completamente: soporte técnico, backend, infraestructura, bases de datos, redes, etc.
-- Identifica SOLO tareas relacionadas con: UI, UX, diseño, CSS, JavaScript, React, Angular, Vue, HTML, responsive, accesibilidad, etc.
+TICKETS (NUMERO|ESTADO|ASIGNADO|DESCRIPCION):
+${ticketsData}
 
-RESPONDE CON:
-1. 🎨 **TAREAS FRONTEND** (lista con número de ticket y descripción breve)
-2. 🖌️ **TAREAS UX/DISEÑO** (lista con número de ticket y descripción breve)  
-3. 📊 **RESUMEN**: Total front: X | Total UX: X | Otros (ignorados): X
-4. ⚡ **PRIORIDAD SUGERIDA**: Cuáles hacer primero y por qué
+Formato EXACTO del email:
 
-Si no hay tareas Front/UX, indícalo claramente.`;
+Hola [Nombre],
 
-        await analyzeWithGPT(prompt, '🎨 Análisis Front/UX');
+Comparto el estado operativo actualizado de [Nombre de la operativa] (${currentTickets.length} bugs):
+
+✅ Prueba Superada: ${counts.pruebaSuperada}
+❓ Pendiente de Aclaración: ${counts.pendienteAclaracion}
+⏳ Pendiente UA-Test: ${counts.pendienteUATest}
+🔴 Abierto: ${counts.abierto}
+🔵 En curso: ${counts.enCurso}
+❌ Rechazado: ${counts.rechazado}
+
+[Agrega UN párrafo destacando puntos importantes como: tickets pendientes de aclaración que generan bloqueos, tickets en curso que requieren atención inmediata, o concentración de trabajo. Sé específico y profesional.]
+
+Quedo atento para cualquier ajuste o consulta.
+
+Saludos
+
+IMPORTANTE:
+- NO agregues firma, teléfono, ni datos de contacto
+- El párrafo debe ser profesional y específico basado en los datos reales
+- Usa "Es importante destacar que..." o similar para iniciar el párrafo`;
+
+        await analyzeWithGPT(prompt, 'Email');
+    });
+
+    // Settings
+    settingsBtn.addEventListener('click', () => {
+        // Cargar valores actuales en el formulario
+        configNombre.value = facturaConfig.nombre;
+        configDestinatario.value = facturaConfig.destinatario;
+        configCc.value = facturaConfig.cc;
+        configCuentaIndex.value = facturaConfig.cuentaIndex;
+        
+        // Mostrar panel de settings
+        settingsPanel.style.display = 'block';
+        analysisResult.style.display = 'none';
+    });
+
+    saveSettingsBtn.addEventListener('click', async () => {
+        // Guardar configuración
+        facturaConfig = {
+            nombre: configNombre.value.trim() || 'Franco Gonzalez',
+            destinatario: configDestinatario.value.trim() || 'Mdprocurement@mindata.es',
+            cc: configCc.value.trim() || 'gonzalez.francodavid@hotmail.com',
+            cuentaIndex: parseInt(configCuentaIndex.value) || 2
+        };
+        
+        await saveFacturaConfig();
+        setStatus('✅ Configuración guardada', 'success');
+        settingsPanel.style.display = 'none';
+    });
+
+    cancelSettingsBtn.addEventListener('click', () => {
+        settingsPanel.style.display = 'none';
+    });
+
+    // Factura Email
+    facturaBtn.addEventListener('click', async () => {
+        const link = prompt('📎 Ingresá el link de la factura:');
+        
+        if (!link || !link.trim()) {
+            setStatus('⚠️ No ingresaste ningún link', 'error');
+            return;
+        }
+
+        // Obtener mes y año actual en español
+        const meses = ['Enero', 'Febrero', 'Marzo', 'Abril', 'Mayo', 'Junio', 
+                       'Julio', 'Agosto', 'Septiembre', 'Octubre', 'Noviembre', 'Diciembre'];
+        const fecha = new Date();
+        const mesActual = meses[fecha.getMonth()];
+        const anioActual = fecha.getFullYear();
+
+        // Usar configuración guardada
+        const asunto = `Honorarios ${mesActual} ${anioActual} - ${facturaConfig.nombre}`;
+        const cuerpo = `Buenos días estimados, adjunto factura periodo: ${mesActual} ${anioActual}
+Link de factura: ${link.trim()}
+
+Saludos,
+
+${facturaConfig.nombre}`;
+
+        // Crear Gmail compose URL con cuenta específica
+        const gmailUrl = `https://mail.google.com/mail/u/${facturaConfig.cuentaIndex}/?view=cm&fs=1&to=${encodeURIComponent(facturaConfig.destinatario)}&cc=${encodeURIComponent(facturaConfig.cc)}&su=${encodeURIComponent(asunto)}&body=${encodeURIComponent(cuerpo)}`;
+
+        // Abrir Gmail con cuenta de Mindata
+        window.open(gmailUrl, '_blank');
+
+        setStatus('✅ Gmail abierto con email listo', 'success');
+        analysisResult.style.whiteSpace = 'pre-wrap';
+        analysisResult.textContent = `📧 Email preparado:\n\n${cuerpo}`;
+        analysisResult.style.display = 'block';
     });
 
     // Copy Report
@@ -320,5 +449,6 @@ Si no hay tareas Front/UX, indícalo claramente.`;
     // Initialize
     // =====================
     console.log('[Popup] SN Triage Copilot Pro - Premium Edition');
+    loadFacturaConfig();
     loadData();
 });

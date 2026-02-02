@@ -14,17 +14,22 @@ chrome.runtime.onMessage.addListener((msg, sender, sendResponse) => {
   
   // Save scrape results from content script
   if (msg.type === "SN_SCRAPE_RESULT") {
-    const payload = msg.payload || {};
-    const key = `SN_DATA_${sender.tab?.id}`;
-    
-    chrome.storage.local.set({
-      [key]: payload,
-      SN_COPILOT_RESULTS: payload,
-      SN_LAST_TAB: sender.tab?.id
-    }).then(() => {
+    (async () => {
+      const payload = msg.payload || {};
+      const tabId = sender.tab?.id;
+      const key = `SN_DATA_${tabId}`;
+      
+      await chrome.storage.local.set({
+        [key]: payload,
+        SN_COPILOT_RESULTS: payload,
+        SN_LAST_TAB: tabId
+      });
+      
       console.log(`[Background] Guardados ${payload.count} tickets`);
-    });
-    return;
+      sendResponse({ success: true });
+    })().catch(e => sendResponse({ success: false, error: e.message }));
+    
+    return true; // Keep channel alive for async response
   }
 
   // GPT Analysis proxy
@@ -42,31 +47,70 @@ chrome.runtime.onMessage.addListener((msg, sender, sendResponse) => {
 async function callOpenAI(prompt, apiKey) {
   console.log('[Background] Llamando OpenAI...');
   
-  const response = await fetch('https://api.openai.com/v1/chat/completions', {
-    method: 'POST',
-    headers: {
-      'Content-Type': 'application/json',
-      'Authorization': `Bearer ${apiKey}`
-    },
-    body: JSON.stringify({
-      model: 'gpt-4o-mini',
-      messages: [{ role: 'user', content: prompt }],
-      temperature: 0.7,
-      max_tokens: 2000
-    })
-  });
-
-  if (!response.ok) {
-    const error = await response.text();
-    throw new Error(`HTTP ${response.status}: ${error}`);
-  }
-
-  const data = await response.json();
+  // AbortController para timeout
+  const controller = new AbortController();
+  const timeoutId = setTimeout(() => controller.abort(), 30000);
   
-  if (data.error) {
-    throw new Error(data.error.message);
-  }
+  try {
+    const response = await fetch('https://api.openai.com/v1/chat/completions', {
+      method: 'POST',
+      headers: {
+        'Content-Type': 'application/json',
+        'Authorization': `Bearer ${apiKey}`
+      },
+      body: JSON.stringify({
+        model: 'gpt-4o-mini',
+        messages: [{ role: 'user', content: prompt }],
+        temperature: 0.7,
+        max_tokens: 2000
+      }),
+      signal: controller.signal
+    });
+    
+    clearTimeout(timeoutId);
 
-  console.log('[Background] Respuesta GPT OK');
-  return { success: true, analysis: data.choices[0].message.content };
+    if (!response.ok) {
+      let errorMsg = `Error ${response.status}`;
+      try {
+        const errorData = await response.json();
+        if (errorData.error?.message) {
+          errorMsg = errorData.error.message;
+        } else if (errorData.error?.code) {
+          errorMsg = `${errorData.error.code}: ${errorData.error.type || 'Error'}`;
+        }
+      } catch {
+        errorMsg = await response.text() || errorMsg;
+      }
+      
+      // Mensajes legibles para errores comunes
+      if (response.status === 401) {
+        throw new Error('API Key inválida o expirada');
+      } else if (response.status === 429) {
+        throw new Error('Límite de requests excedido. Esperá unos minutos.');
+      } else if (response.status === 500) {
+        throw new Error('Error del servidor de OpenAI. Reintentá en unos segundos.');
+      }
+      
+      throw new Error(errorMsg);
+    }
+
+    const data = await response.json();
+    
+    if (data.error) {
+      throw new Error(data.error.message);
+    }
+
+    if (!data.choices?.[0]?.message?.content) {
+      throw new Error('Respuesta vacía de OpenAI');
+    }
+
+    console.log('[Background] Respuesta GPT OK');
+    return { success: true, analysis: data.choices[0].message.content };
+  } catch (error) {
+    clearTimeout(timeoutId);
+    if (error.name === 'AbortError') {
+      throw new Error('Timeout: La solicitud tardó más de 30 segundos');
+    }
+    throw error;
+  }
 }

@@ -22,8 +22,8 @@
     const CONFIG = {
         INSTANCE_ID: Math.random().toString(36).slice(2, 7),
         VERSION: "1.0.2",
-        RETRY_ATTEMPTS: 3,
-        RETRY_DELAY_MS: 1000,
+        RETRY_ATTEMPTS: 2,
+        RETRY_DELAY_MS: 500,
         API_LIMIT: 200,
         SUPPORTED_TABLES: ["issue", "incident", "problem", "change_request", "sc_req_item", "sc_task"],
         FIELD_MAPPINGS: {
@@ -44,7 +44,6 @@
                 "assigned to",
                 "asignado",
                 "assigned_to",
-                "assignment group",
                 "assigned",
                 "assigned_user",
             ],
@@ -101,7 +100,7 @@
         if (!number) return "";
         const cleanNum = number.trim();
         // Usamos task.do con query por número. Es el "comodín" de ServiceNow.
-        return `${location.origin}/nav_to.do?uri=task.do?sysparm_query=number=${cleanNum}`;
+        return `${location.origin}/nav_to.do?uri=${encodeURIComponent(`task.do?sysparm_query=number=${cleanNum}`)}`;
     }
     
 
@@ -172,27 +171,13 @@
             log("Stored in window.SN_COPILOT_RESULTS", payload.count);
 
             if (hasChromeRuntime()) {
-                // Método nuevo: por tab ID
-                try {
-                    const [tab] = await chrome.tabs.query({ active: true, currentWindow: true });
-                    if (tab?.id) {
-                        const key = `SN_DATA_${tab.id}`;
-                        await chrome.storage.local.set({
-                            [key]: payload,
-                            SN_LAST_ACTIVE_TAB: tab.id
-                        });
-                        log(`Stored in chrome.storage.local with key: ${key}`, payload.count);
-                    }
-                } catch (tabError) {
-                    warn("Could not get tab ID, using legacy method", tabError);
-                }
-
-                // Método legacy: compatible
+                // Guardar en storage (el background se encargará de asociar con tab ID)
                 await chrome.storage.local.set({
                     SN_COPILOT_RESULTS: payload,
                     SN_COPILOT_SAVED_AT: payload.ts,
                 });
 
+                // Enviar al background para que guarde con tab ID
                 chrome.runtime.sendMessage({ type: "SN_SCRAPE_RESULT", payload });
                 log("Sent message to background", payload.count);
             }
@@ -312,17 +297,11 @@
             if (!isTicketNumber(number)) continue;
 
             tickets.push({
-                id: number,
                 number,
                 short_description: pick(cols, idx.short_description),
-                impact: pick(cols, idx.impact),
                 priority: pick(cols, idx.priority),
                 assigned_to: pick(cols, idx.assigned_to),
                 state: pick(cols, idx.state),
-                href: "",
-                pageUrl: realUrl,
-                extractionMethod: "csv",
-                rowIndex: r,
                 link: generateTicketLink(number),
             });
         }
@@ -332,9 +311,6 @@
             via: "csv",
             count: tickets.length,
             tickets,
-            headers,
-            fieldMapping: idx,
-            totalRows: rows.length - 1,
         };
     }
 
@@ -549,7 +525,7 @@
                         extractionMethod: "dom",
                         tableIndex: t + 1,
                         rowIndex: r + 1,
-                        link: realHref || generateTicketLink(number),
+                        link: a?.href || generateTicketLink(number),
                     });
                 }
 

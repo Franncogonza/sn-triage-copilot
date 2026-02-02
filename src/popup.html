@@ -146,22 +146,77 @@
         .analysis-result {
             margin-top: 16px;
             padding: 12px;
-            border-radius: 6px;
             background: white;
             border: 1px solid #dee2e6;
+            border-radius: 6px;
             font-size: 13px;
-            line-height: 1.4;
-            max-height: 200px;
+            line-height: 1.6;
+            max-height: 300px;
             overflow-y: auto;
         }
 
+        .settings-panel {
+            margin-top: 16px;
+            padding: 16px;
+            background: white;
+            border: 1px solid #dee2e6;
+            border-radius: 8px;
+        }
+
+        .settings-panel h3 {
+            margin: 0 0 16px 0;
+            font-size: 16px;
+            color: #2c3e50;
+        }
+
+        .settings-form {
+            display: flex;
+            flex-direction: column;
+            gap: 12px;
+        }
+
+        .form-group {
+            display: flex;
+            flex-direction: column;
+            gap: 4px;
+        }
+
+        .form-group label {
+            font-size: 12px;
+            font-weight: 600;
+            color: #495057;
+        }
+
+        .form-group input {
+            padding: 8px;
+            border: 1px solid #ced4da;
+            border-radius: 4px;
+            font-size: 13px;
+        }
+
+        .form-group input:focus {
+            outline: none;
+            border-color: #007bff;
+            box-shadow: 0 0 0 2px rgba(0, 123, 255, 0.1);
+        }
+
+        .form-group small {
+            font-size: 11px;
+            color: #6c757d;
+        }
+
+        .settings-actions {
+            display: flex;
+            gap: 8px;
+            margin-top: 8px;
+        }
+
         .loading-spinner {
-            display: inline-block;
-            width: 12px;
-            height: 12px;
             border: 2px solid #f3f3f3;
-            border-top: 2px solid #007bff;
+            border-top: 2px solid #3498db;
             border-radius: 50%;
+            width: 16px;
+            height: 16px;
             animation: spin 1s linear infinite;
         }
 
@@ -236,24 +291,58 @@
     </div>
 
     <div id="actions" class="actions" style="display: none;">
-        <button id="test-api-btn" class="btn btn-secondary" style="background: #28a745; margin-bottom: 8px;">
-            🧪 Probar API Key
+        <button id="generate-report-btn" class="btn btn-primary">
+            📊 Conteo Rápido
         </button>
-        <button id="test-direct-btn" class="btn btn-secondary" style="background: #ffc107; margin-bottom: 8px;">
-            ⚡ Test Directo OpenAI
+        <button id="ai-analysis-btn" class="btn btn-primary" style="background: #17a2b8;">
+            📧 Generar Email
         </button>
-        <button id="analyze-btn" class="btn btn-primary">
-            🎨 Analizar Front/UX
+        <button id="factura-btn" class="btn btn-primary" style="background: #28a745;">
+            📄 Factura
         </button>
-        <button id="copy-report-btn" class="btn btn-secondary" style="background: #6f42c1; margin-top: 8px;">
+        <button id="copy-report-btn" class="btn btn-secondary" style="background: #6f42c1;">
             📋 Copiar Informe
         </button>
         <button id="refresh-btn" class="btn btn-secondary">
             🔄 Refrescar Datos
         </button>
+        <button id="settings-btn" class="btn btn-secondary" style="background: #6c757d;">
+            ⚙️ Configuración
+        </button>
     </div>
 
     <div id="analysis-result" class="analysis-result" style="display: none;"></div>
+
+    <div id="settings-panel" class="settings-panel" style="display: none;">
+        <h3>⚙️ Configuración de Factura</h3>
+        <div class="settings-form">
+            <div class="form-group">
+                <label for="config-nombre">Tu Nombre:</label>
+                <input type="text" id="config-nombre" placeholder="Franco Gonzalez" />
+            </div>
+            <div class="form-group">
+                <label for="config-destinatario">Destinatario (Para):</label>
+                <input type="email" id="config-destinatario" placeholder="Mdprocurement@mindata.es" />
+            </div>
+            <div class="form-group">
+                <label for="config-cc">CC (Con Copia):</label>
+                <input type="email" id="config-cc" placeholder="gonzalez.francodavid@hotmail.com" />
+            </div>
+            <div class="form-group">
+                <label for="config-cuenta-index">Índice de Cuenta Gmail (0, 1, 2...):</label>
+                <input type="number" id="config-cuenta-index" min="0" max="10" placeholder="2" />
+                <small>0 = primera cuenta, 1 = segunda, etc.</small>
+            </div>
+            <div class="settings-actions">
+                <button id="save-settings-btn" class="btn btn-primary">
+                    💾 Guardar Configuración
+                </button>
+                <button id="cancel-settings-btn" class="btn btn-secondary">
+                    ❌ Cancelar
+                </button>
+            </div>
+        </div>
+    </div>
 
     <script src="popup.js"></script>
 </body>
