@@ -435,6 +435,31 @@ IMPORTANTE:
             return;
         }
 
+        // Validar que sea una URL válida (http/https) y no código JavaScript
+        const sanitizedLink = link.trim();
+        
+        // Validación de URL
+        try {
+            const url = new URL(sanitizedLink);
+            
+            // Solo permitir http y https
+            if (url.protocol !== 'http:' && url.protocol !== 'https:') {
+                setStatus('⚠️ URL inválida. Solo se permiten enlaces http:// o https://', 'error');
+                return;
+            }
+            
+            // Prevenir javascript: y data: URIs
+            if (sanitizedLink.toLowerCase().startsWith('javascript:') || 
+                sanitizedLink.toLowerCase().startsWith('data:') ||
+                sanitizedLink.toLowerCase().startsWith('vbscript:')) {
+                setStatus('⚠️ URL inválida. No se permiten enlaces con código ejecutable.', 'error');
+                return;
+            }
+        } catch (e) {
+            setStatus('⚠️ URL inválida. Ingresá una URL completa (ej: https://ejemplo.com/factura.pdf)', 'error');
+            return;
+        }
+
         // Obtener mes y año actual
         const meses = translations[currentLang].months;
         const fecha = new Date();
@@ -444,7 +469,7 @@ IMPORTANTE:
         // Usar configuración guardada
         const asunto = `${tr('invoiceSubject')} ${mesActual} ${anioActual} - ${facturaConfig.nombre}`;
         const cuerpo = `${tr('invoiceGreeting')} ${tr('invoiceBody')} ${mesActual} ${anioActual}
-${tr('invoiceLink')} ${link.trim()}
+${tr('invoiceLink')} ${sanitizedLink}
 
 ${tr('invoiceClosing')}
 
@@ -454,7 +479,7 @@ ${facturaConfig.nombre}`;
         const gmailUrl = `https://mail.google.com/mail/u/${facturaConfig.cuentaIndex}/?view=cm&fs=1&to=${encodeURIComponent(facturaConfig.destinatario)}&cc=${encodeURIComponent(facturaConfig.cc)}&su=${encodeURIComponent(asunto)}&body=${encodeURIComponent(cuerpo)}`;
 
         // Abrir Gmail con cuenta de Mindata
-        window.open(gmailUrl, '_blank');
+        window.open(gmailUrl, '_blank', 'noopener,noreferrer');
 
         setStatus(tr('successGmailOpened'), 'success');
         analysisResult.style.whiteSpace = 'pre-wrap';
