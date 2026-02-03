@@ -19,12 +19,22 @@
     // -----------------------------
     // Config
     // -----------------------------
+    // Generar INSTANCE_ID con timestamp y hash de URL para trazabilidad
+    const generateInstanceId = () => {
+        const timestamp = Date.now().toString(36);
+        const urlHash = location.href.split('').reduce((a, b) => {
+            a = ((a << 5) - a) + b.charCodeAt(0);
+            return a & a;
+        }, 0).toString(36);
+        return `${timestamp}-${urlHash}`.slice(0, 12);
+    };
+
     const CONFIG = {
-        INSTANCE_ID: Math.random().toString(36).slice(2, 7),
+        INSTANCE_ID: generateInstanceId(),
         VERSION: "1.0.2",
         RETRY_ATTEMPTS: 2,
         RETRY_DELAY_MS: 500,
-        API_LIMIT: 200,
+        API_LIMIT: 500, // Límite por defecto (configurable)
         SUPPORTED_TABLES: ["issue", "incident", "problem", "change_request", "sc_req_item", "sc_task"],
         FIELD_MAPPINGS: {
             number: ["número", "numero", "number", "ticket_id", "incident_id"],
@@ -366,7 +376,14 @@
                     const rows = parseCSV(text);
                     const mapped = mapTicketsFromCSV(rows);
 
-                    if (mapped.ok) {
+                    if (mapped.ok && mapped.tickets.length > 0) {
+                        log(`✅ CSV success: ${mapped.tickets.length} tickets`);
+                        
+                        // Advertir si se excede el límite recomendado
+                        if (mapped.tickets.length > CONFIG.API_LIMIT) {
+                            warn(`⚠️ Extracted ${mapped.tickets.length} tickets, exceeds limit of ${CONFIG.API_LIMIT}. Consider filtering or adjusting limit.`);
+                        }
+                        
                         return { ok: true, ...mapped, fetchUrl: res.url, attempt: attempt + 1, strategyUrl: url };
                     }
                 } catch (e) {
@@ -562,6 +579,17 @@
     async function main() {
         const start = performance.now();
         log("Starting extraction process...");
+        
+        // Cargar límite configurable
+        try {
+            const stored = await chrome.storage.local.get('TICKET_LIMIT');
+            if (stored.TICKET_LIMIT && stored.TICKET_LIMIT > 0) {
+                CONFIG.API_LIMIT = stored.TICKET_LIMIT;
+                log(`Using configured ticket limit: ${CONFIG.API_LIMIT}`);
+            }
+        } catch (e) {
+            warn('Could not load ticket limit config:', e);
+        }
 
         try {
             // 1) CSV
