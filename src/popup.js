@@ -5,9 +5,15 @@
 
 document.addEventListener('DOMContentLoaded', async () => {
     // =====================
+    // Initialize State Manager
+    // =====================
+    const state = new AppState();
+    await state.initialize();
+    
+    // =====================
     // i18n - Internationalization
     // =====================
-    let currentLang = await getCurrentLanguage();
+    let currentLang = state.getCurrentLang();
     const languageSelector = document.getElementById('language-selector');
     languageSelector.value = currentLang;
     
@@ -35,6 +41,7 @@ document.addEventListener('DOMContentLoaded', async () => {
         document.querySelector('#settings-panel small').textContent = tr('settingsGmailIndexHelp');
         
         // Update placeholders
+        const config = state.getFacturaConfig();
         configNombre.placeholder = tr('placeholderName');
         configDestinatario.placeholder = tr('placeholderRecipient');
         configCc.placeholder = tr('placeholderCC');
@@ -47,7 +54,7 @@ document.addEventListener('DOMContentLoaded', async () => {
     // Language selector change
     languageSelector.addEventListener('change', async (e) => {
         currentLang = e.target.value;
-        await setLanguage(currentLang);
+        await state.setLanguage(currentLang);
         updateUILanguage();
         setStatus(tr('statusSuccess'), 'success');
     });
@@ -81,60 +88,26 @@ document.addEventListener('DOMContentLoaded', async () => {
     updateUILanguage();
     
     // Cargar preferencia de Modo Seguro
-    chrome.storage.local.get('SAFE_MODE', (result) => {
-        safeModeCheckbox.checked = result.SAFE_MODE || false;
-    });
+    safeModeCheckbox.checked = state.getSafeMode();
     
     // Guardar preferencia de Modo Seguro
-    safeModeCheckbox.addEventListener('change', () => {
-        chrome.storage.local.set({ SAFE_MODE: safeModeCheckbox.checked });
+    safeModeCheckbox.addEventListener('change', async () => {
+        await state.setSafeMode(safeModeCheckbox.checked);
     });
 
     // =====================
-    // State
+    // Business Logic (usando módulo externo)
     // =====================
-    let currentTickets = [];
-    let facturaConfig = {
-        nombre: 'Franco Gonzalez',
-        destinatario: 'Mdprocurement@mindata.es',
-        cc: 'gonzalez.francodavid@hotmail.com',
-        cuentaIndex: 2
-    };
-
-    // =====================
-    // Utilities
-    // =====================
-    function removeAccents(str) {
-        return str.replace(/á/g, 'a')
-                 .replace(/é/g, 'e')
-                 .replace(/í/g, 'i')
-                 .replace(/ó/g, 'o')
-                 .replace(/ú/g, 'u')
-                 .replace(/ñ/g, 'n');
-    }
-
-    function countTicketsByState(tickets) {
-        const counts = {
-            pruebaSuperada: 0,
-            pendienteAclaracion: 0,
-            pendienteUATest: 0,
-            abierto: 0,
-            enCurso: 0,
-            rechazado: 0
-        };
-
-        tickets.forEach(t => {
-            const stateNorm = removeAccents((t.state || '').toLowerCase());
-            if (stateNorm.includes('superada')) counts.pruebaSuperada++;
-            else if (stateNorm.includes('pendiente de aclarac')) counts.pendienteAclaracion++;
-            else if (stateNorm.includes('ua-test') || stateNorm.includes('uat')) counts.pendienteUATest++;
-            else if (stateNorm.includes('abierto')) counts.abierto++;
-            else if (stateNorm.includes('en curso')) counts.enCurso++;
-            else if (stateNorm.includes('rechazado')) counts.rechazado++;
-        });
-
-        return counts;
-    }
+    const { 
+        countTicketsByState, 
+        generateReport, 
+        generateEmailPrompt,
+        generateInvoiceEmail,
+        generateGmailUrl,
+        validateApiKey,
+        validateUrl,
+        getPriorityClass
+    } = window.BusinessLogic;
 
     // =====================
     // Helpers
@@ -154,55 +127,49 @@ document.addEventListener('DOMContentLoaded', async () => {
         statusEl.appendChild(span);
     };
 
-    const getPrioClass = (prio) => {
-        if (!prio) return '';
-        const p = prio.toLowerCase();
-        if (p.includes('1') || p.includes('crit') || p.includes('high')) return 'prio-high';
-        if (p.includes('2') || p.includes('mod')) return 'prio-med';
-        return 'prio-low';
-    };
-
     async function getApiKey() {
-        const result = await chrome.storage.local.get('OPENAI_API_KEY');
-        if (!result.OPENAI_API_KEY) {
+        const existingKey = await state.getApiKey();
+        if (!existingKey) {
             const key = prompt(tr('promptApiKey'));
             if (key) {
-                const trimmedKey = key.trim();
+                const validation = validateApiKey(key);
                 
-                // Validar formato de API Key de OpenAI
-                if (!trimmedKey.startsWith('sk-')) {
-                    setStatus('⚠️ API Key inválida. Debe comenzar con "sk-"', 'error');
+                if (!validation.valid) {
+                    setStatus(`⚠️ ${validation.error}`, 'error');
                     return null;
                 }
                 
-                if (trimmedKey.length < 20) {
-                    setStatus('⚠️ API Key demasiado corta. Verificá que sea correcta.', 'error');
-                    return null;
-                }
-                
-                await chrome.storage.local.set({ OPENAI_API_KEY: trimmedKey });
-                return trimmedKey;
+                await state.saveApiKey(validation.key);
+                return validation.key;
             }
             setStatus(tr('errorApiKeyRequired'), 'error');
             return null;
         }
-        return result.OPENAI_API_KEY;
+        return existingKey;
     }
     
     async function deleteApiKey() {
-        await chrome.storage.local.remove('OPENAI_API_KEY');
+        await state.deleteApiKey();
         setStatus('🔑 API Key eliminada. Ingresá una nueva en el próximo análisis.', 'success');
     }
 
     async function loadFacturaConfig() {
-        const result = await chrome.storage.local.get('FACTURA_CONFIG');
-        if (result.FACTURA_CONFIG) {
-            facturaConfig = result.FACTURA_CONFIG;
-        }
+        // Config ya cargado en state.initialize()
+        const config = state.getFacturaConfig();
+        configNombre.value = config.nombre;
+        configDestinatario.value = config.destinatario;
+        configCc.value = config.cc;
+        configCuentaIndex.value = config.cuentaIndex;
     }
 
     async function saveFacturaConfig() {
-        await chrome.storage.local.set({ FACTURA_CONFIG: facturaConfig });
+        const config = {
+            nombre: configNombre.value || state.getFacturaConfig().nombre,
+            destinatario: configDestinatario.value || state.getFacturaConfig().destinatario,
+            cc: configCc.value || state.getFacturaConfig().cc,
+            cuentaIndex: parseInt(configCuentaIndex.value) || state.getFacturaConfig().cuentaIndex
+        };
+        await state.saveFacturaConfig(config);
     }
 
     // =====================
@@ -214,33 +181,28 @@ document.addEventListener('DOMContentLoaded', async () => {
             const [tab] = await chrome.tabs.query({ active: true, currentWindow: true });
             
             if (!tab?.id) {
-                setStatus('Error: No hay pestaña activa', 'error');
+                setStatus(tr('errorNoActiveTab'), 'error');
                 return;
             }
 
-            // Try new storage key first
-            const key = `SN_DATA_${tab.id}`;
-            let storage = await chrome.storage.local.get([key]);
-            let data = storage[key];
-
-            // Fallback to legacy key
-            if (!data?.success) {
-                storage = await chrome.storage.local.get(['SN_COPILOT_RESULTS']);
-                data = storage.SN_COPILOT_RESULTS;
-            }
-
-            if (data?.success && data.tickets?.length > 0) {
-                currentTickets = data.tickets;
-                setStatus(`✅ ${data.tickets.length} tickets cargados (${data.method || 'auto'})`, 'success');
-                renderTickets(data.tickets);
-                actions.style.display = 'flex';
-            } else {
-                setStatus('No hay tickets. Navega a una lista de ServiceNow.', 'error');
+            const result = await chrome.storage.local.get('SN_TICKETS');
+            
+            if (!result.SN_TICKETS || !result.SN_TICKETS.tickets || result.SN_TICKETS.tickets.length === 0) {
+                setStatus(tr('statusNoTickets'), 'error');
                 ticketsSection.style.display = 'none';
+                actions.style.display = 'none';
+                return;
             }
-        } catch (e) {
-            console.error('[Popup] Error cargando datos:', e);
-            setStatus('Error: ' + e.message, 'error');
+
+            state.setTickets(result.SN_TICKETS.tickets);
+            renderTickets(state.getTickets());
+            
+            setStatus(`${tr('statusSuccess')} - ${state.getTicketCount()} tickets`, 'success');
+            ticketsSection.style.display = 'block';
+            actions.style.display = 'flex';
+        } catch (error) {
+            console.error('[Popup] Error:', error);
+            setStatus(tr('errorLoadingData'), 'error');
         }
     }
 
