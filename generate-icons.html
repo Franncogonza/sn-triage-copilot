@@ -1,0 +1,187 @@
+<!DOCTYPE html>
+<html>
+<head>
+    <title>Generate Extension Icons</title>
+    <style>
+        body {
+            font-family: Arial, sans-serif;
+            padding: 20px;
+            background: #f5f5f5;
+        }
+        .container {
+            max-width: 800px;
+            margin: 0 auto;
+            background: white;
+            padding: 30px;
+            border-radius: 8px;
+            box-shadow: 0 2px 10px rgba(0,0,0,0.1);
+        }
+        h1 {
+            color: #2563eb;
+            margin-bottom: 20px;
+        }
+        .icons {
+            display: flex;
+            gap: 20px;
+            margin: 30px 0;
+            flex-wrap: wrap;
+        }
+        .icon-box {
+            text-align: center;
+        }
+        canvas {
+            border: 1px solid #ddd;
+            border-radius: 4px;
+            display: block;
+            margin: 10px 0;
+        }
+        button {
+            background: #2563eb;
+            color: white;
+            border: none;
+            padding: 12px 24px;
+            border-radius: 6px;
+            cursor: pointer;
+            font-size: 14px;
+            font-weight: 600;
+            margin: 5px;
+        }
+        button:hover {
+            background: #1d4ed8;
+        }
+        .instructions {
+            background: #e0f2fe;
+            padding: 15px;
+            border-radius: 6px;
+            margin-top: 20px;
+            border-left: 4px solid #0ea5e9;
+        }
+        .instructions h3 {
+            margin-top: 0;
+            color: #075985;
+        }
+        .instructions ol {
+            margin: 10px 0;
+            padding-left: 20px;
+        }
+        .instructions li {
+            margin: 8px 0;
+        }
+    </style>
+</head>
+<body>
+    <div class="container">
+        <h1>🚀 SN Triage Copilot Pro - Icon Generator</h1>
+        <p>Genera los iconos necesarios para la extensión de Chrome.</p>
+        
+        <div class="icons">
+            <div class="icon-box">
+                <h3>16x16</h3>
+                <canvas id="icon16" width="16" height="16"></canvas>
+                <button onclick="downloadIcon('icon16', 'icon16.png')">Descargar 16x16</button>
+            </div>
+            <div class="icon-box">
+                <h3>48x48</h3>
+                <canvas id="icon48" width="48" height="48"></canvas>
+                <button onclick="downloadIcon('icon48', 'icon48.png')">Descargar 48x48</button>
+            </div>
+            <div class="icon-box">
+                <h3>128x128</h3>
+                <canvas id="icon128" width="128" height="128"></canvas>
+                <button onclick="downloadIcon('icon128', 'icon128.png')">Descargar 128x128</button>
+            </div>
+        </div>
+
+        <button onclick="downloadAll()" style="background: #10b981;">📦 Descargar Todos</button>
+
+        <div class="instructions">
+            <h3>📋 Instrucciones:</h3>
+            <ol>
+                <li>Haz clic en "Descargar Todos" para descargar los 3 iconos</li>
+                <li>Mueve los archivos descargados a la carpeta <code>src/icons/</code></li>
+                <li>Los iconos ya están configurados en el manifest.json</li>
+                <li>Recarga la extensión en Chrome</li>
+            </ol>
+        </div>
+    </div>
+
+    <script>
+        function drawIcon(canvas, size) {
+            const ctx = canvas.getContext('2d');
+            const scale = size / 128;
+            
+            // Background gradient
+            const gradient = ctx.createLinearGradient(0, 0, size, size);
+            gradient.addColorStop(0, '#2563eb');
+            gradient.addColorStop(1, '#1d4ed8');
+            ctx.fillStyle = gradient;
+            ctx.fillRect(0, 0, size, size);
+            
+            // Rocket icon (simplified)
+            ctx.save();
+            ctx.translate(size / 2, size / 2);
+            
+            // Rocket body
+            ctx.fillStyle = '#ffffff';
+            ctx.beginPath();
+            ctx.moveTo(0, -size * 0.35);
+            ctx.lineTo(size * 0.15, size * 0.25);
+            ctx.lineTo(-size * 0.15, size * 0.25);
+            ctx.closePath();
+            ctx.fill();
+            
+            // Rocket window
+            ctx.fillStyle = '#2563eb';
+            ctx.beginPath();
+            ctx.arc(0, -size * 0.15, size * 0.08, 0, Math.PI * 2);
+            ctx.fill();
+            
+            // Rocket fins
+            ctx.fillStyle = '#e0f2fe';
+            ctx.beginPath();
+            ctx.moveTo(-size * 0.15, size * 0.1);
+            ctx.lineTo(-size * 0.25, size * 0.25);
+            ctx.lineTo(-size * 0.15, size * 0.25);
+            ctx.closePath();
+            ctx.fill();
+            
+            ctx.beginPath();
+            ctx.moveTo(size * 0.15, size * 0.1);
+            ctx.lineTo(size * 0.25, size * 0.25);
+            ctx.lineTo(size * 0.15, size * 0.25);
+            ctx.closePath();
+            ctx.fill();
+            
+            // Flame
+            ctx.fillStyle = '#fbbf24';
+            ctx.beginPath();
+            ctx.moveTo(-size * 0.1, size * 0.25);
+            ctx.lineTo(0, size * 0.38);
+            ctx.lineTo(size * 0.1, size * 0.25);
+            ctx.closePath();
+            ctx.fill();
+            
+            ctx.restore();
+        }
+
+        // Generate icons
+        drawIcon(document.getElementById('icon16'), 16);
+        drawIcon(document.getElementById('icon48'), 48);
+        drawIcon(document.getElementById('icon128'), 128);
+
+        function downloadIcon(canvasId, filename) {
+            const canvas = document.getElementById(canvasId);
+            const link = document.createElement('a');
+            link.download = filename;
+            link.href = canvas.toDataURL('image/png');
+            link.click();
+        }
+
+        function downloadAll() {
+            setTimeout(() => downloadIcon('icon16', 'icon16.png'), 100);
+            setTimeout(() => downloadIcon('icon48', 'icon48.png'), 300);
+            setTimeout(() => downloadIcon('icon128', 'icon128.png'), 500);
+        }
+    </script>
+</body>
+</html>
