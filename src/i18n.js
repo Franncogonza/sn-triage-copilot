@@ -50,6 +50,7 @@ const translations = {
         
         // Validation messages
         errorApiKeyRequired: '⚠️ API Key required',
+        errorLoadingData: 'Error loading data. Please try again.',
         errorNoTickets: '⚠️ No tickets to analyze',
         errorNoLink: '⚠️ No link entered',
         errorNothingToCopy: '⚠️ Nothing to copy',
@@ -151,6 +152,7 @@ const translations = {
         
         // Validation messages
         errorApiKeyRequired: '⚠️ API Key requerida',
+        errorLoadingData: 'Error al cargar datos. Intentá de nuevo.',
         errorNoTickets: '⚠️ No hay tickets para analizar',
         errorNoLink: '⚠️ No ingresaste ningún link',
         errorNothingToCopy: '⚠️ No hay informe para copiar',
@@ -214,16 +216,6 @@ function detectLanguage() {
     return browserLang.toLowerCase().startsWith('es') ? 'es' : 'en';
 }
 
-// Get current language from storage or detect
-async function getCurrentLanguage() {
-    try {
-        const result = await chrome.storage.local.get('APP_LANGUAGE');
-        return result.APP_LANGUAGE || detectLanguage();
-    } catch {
-        return detectLanguage();
-    }
-}
-
 // Set language
 async function setLanguage(lang) {
     await chrome.storage.local.set({ APP_LANGUAGE: lang });
@@ -232,6 +224,27 @@ async function setLanguage(lang) {
 // Get translation
 function t(key, lang = 'en') {
     return translations[lang]?.[key] || translations.en[key] || key;
+}
+
+// Get current language from storage or detect
+async function getCurrentLanguage() {
+    try {
+        const result = await chrome.storage.local.get('APP_LANGUAGE');
+        return result.APP_LANGUAGE || detectLanguage();
+    } catch (e) {
+        return detectLanguage();
+    }
+}
+
+// Exponer en window para acceso seguro desde otros scripts
+if (typeof window !== 'undefined') {
+    window.I18n = { 
+        translations, 
+        t, 
+        detectLanguage, 
+        setLanguage, 
+        getCurrentLanguage 
+    };
 }
 
 // Export for use in other files

@@ -4,18 +4,29 @@
  */
 
 document.addEventListener('DOMContentLoaded', async () => {
+    console.log('[Popup] Iniciando...');
+    
     // =====================
     // Initialize State Manager
     // =====================
     const state = new AppState();
     await state.initialize();
+    console.log('[Popup] State inicializado');
     
     // =====================
     // i18n - Internationalization
     // =====================
+    if (!window.I18n) {
+        console.error('[Popup] ERROR: window.I18n no está definido');
+        alert('Error: i18n no cargado. Recarga la extensión.');
+        return;
+    }
+    
+    const { t, getCurrentLanguage, setLanguage } = window.I18n;
     let currentLang = state.getCurrentLang();
     const languageSelector = document.getElementById('language-selector');
     languageSelector.value = currentLang;
+    console.log('[Popup] i18n cargado, idioma:', currentLang);
     
     // Translation helper
     const tr = (key) => t(key, currentLang);
@@ -54,7 +65,8 @@ document.addEventListener('DOMContentLoaded', async () => {
     // Language selector change
     languageSelector.addEventListener('change', async (e) => {
         currentLang = e.target.value;
-        await state.setLanguage(currentLang);
+        await setLanguage(currentLang);
+        await state.setLanguage(currentLang); // También actualizar en state
         updateUILanguage();
         setStatus(tr('statusSuccess'), 'success');
     });
@@ -127,6 +139,13 @@ document.addEventListener('DOMContentLoaded', async () => {
         statusEl.appendChild(span);
     };
 
+    // Scroll automático al resultado
+    const scrollToResult = () => {
+        setTimeout(() => {
+            analysisResult.scrollIntoView({ behavior: 'smooth', block: 'nearest' });
+        }, 100);
+    };
+
     async function getApiKey() {
         const existingKey = await state.getApiKey();
         if (!existingKey) {
@@ -162,16 +181,6 @@ document.addEventListener('DOMContentLoaded', async () => {
         configCuentaIndex.value = config.cuentaIndex;
     }
 
-    async function saveFacturaConfig() {
-        const config = {
-            nombre: configNombre.value || state.getFacturaConfig().nombre,
-            destinatario: configDestinatario.value || state.getFacturaConfig().destinatario,
-            cc: configCc.value || state.getFacturaConfig().cc,
-            cuentaIndex: parseInt(configCuentaIndex.value) || state.getFacturaConfig().cuentaIndex
-        };
-        await state.saveFacturaConfig(config);
-    }
-
     // =====================
     // Core Functions
     // =====================
@@ -185,16 +194,16 @@ document.addEventListener('DOMContentLoaded', async () => {
                 return;
             }
 
-            const result = await chrome.storage.local.get('SN_TICKETS');
+            const result = await chrome.storage.local.get('SN_COPILOT_RESULTS');
             
-            if (!result.SN_TICKETS || !result.SN_TICKETS.tickets || result.SN_TICKETS.tickets.length === 0) {
+            if (!result.SN_COPILOT_RESULTS || !result.SN_COPILOT_RESULTS.tickets || result.SN_COPILOT_RESULTS.tickets.length === 0) {
                 setStatus(tr('statusNoTickets'), 'error');
                 ticketsSection.style.display = 'none';
                 actions.style.display = 'none';
                 return;
             }
 
-            state.setTickets(result.SN_TICKETS.tickets);
+            state.setTickets(result.SN_COPILOT_RESULTS.tickets);
             renderTickets(state.getTickets());
             
             setStatus(`${tr('statusSuccess')} - ${state.getTicketCount()} tickets`, 'success');
@@ -208,7 +217,7 @@ document.addEventListener('DOMContentLoaded', async () => {
 
     function renderTickets(tickets) {
         ticketsCount.textContent = tickets.length;
-        ticketsList.innerHTML = '';
+        ticketsList.textContent = ''; // Limpiar lista
 
         tickets.slice(0, 50).forEach(t => {
             const div = document.createElement('div');
@@ -226,7 +235,7 @@ document.addEventListener('DOMContentLoaded', async () => {
             link.textContent = `${t.number} 🔗`;
             
             const prio = document.createElement('span');
-            prio.className = getPrioClass(t.priority);
+            prio.className = getPriorityClass(t.priority);
             prio.textContent = t.priority || '';
             
             header.appendChild(link);
@@ -284,6 +293,7 @@ document.addEventListener('DOMContentLoaded', async () => {
                 analysisResult.style.whiteSpace = 'pre-wrap';
                 analysisResult.textContent = response.analysis;
                 analysisResult.style.display = 'block';
+                scrollToResult();
             } else {
                 throw new Error(response?.error || 'Error desconocido');
             }
@@ -328,6 +338,7 @@ ${suma !== total ? `\n⚠️ Sin clasificar: ${total - suma}` : ''}`;
         analysisResult.style.whiteSpace = 'pre-wrap';
         analysisResult.textContent = `${tr('reportTitle')}\n\n${report}`;
         analysisResult.style.display = 'block';
+        scrollToResult();
     });
 
     // AI Analysis
@@ -401,12 +412,14 @@ IMPORTANTE:
     });
 
     saveSettingsBtn.addEventListener('click', async () => {
-        // Guardar configuración
+        // Obtener config actual como fallback
+        const currentConfig = state.getFacturaConfig();
+        
         const config = {
-            nombre: configNombre.value.trim() || 'Franco Gonzalez',
-            destinatario: configDestinatario.value.trim() || 'Mdprocurement@mindata.es',
-            cc: configCc.value.trim() || 'gonzalez.francodavid@hotmail.com',
-            cuentaIndex: parseInt(configCuentaIndex.value) || 2
+            nombre: configNombre.value.trim() || currentConfig.nombre,
+            destinatario: configDestinatario.value.trim() || currentConfig.destinatario,
+            cc: configCc.value.trim() || currentConfig.cc,
+            cuentaIndex: configCuentaIndex.value !== '' ? parseInt(configCuentaIndex.value) : currentConfig.cuentaIndex
         };
         
         await state.saveFacturaConfig(config);
@@ -460,7 +473,7 @@ IMPORTANTE:
         }
 
         // Obtener mes y año actual
-        const meses = translations[currentLang].months;
+        const meses = window.I18n.translations[currentLang].months;
         const fecha = new Date();
         const mesActual = meses[fecha.getMonth()];
         const anioActual = fecha.getFullYear();
@@ -485,6 +498,7 @@ ${config.nombre}`;
         analysisResult.style.whiteSpace = 'pre-wrap';
         analysisResult.textContent = `${tr('emailPrepared')}\n\n${cuerpo}`;
         analysisResult.style.display = 'block';
+        scrollToResult();
     });
 
     // Copy Report
