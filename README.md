@@ -3,7 +3,7 @@
 Chrome Extension (Manifest V3) para análisis inteligente de tickets de ServiceNow con IA.
 
 [![Version](https://img.shields.io/badge/version-2.0.0-blue.svg)](https://github.com/Franncogonza/sn-triage-copilot)
-[![License](https://img.shields.io/badge/license-MIT-green.svg)](LICENSE)
+[![License](https://img.shields.io/badge/license-All%20Rights%20Reserved-red.svg)](LICENSE)
 [![Tests](https://img.shields.io/badge/tests-25%2B-brightgreen.svg)](__tests__)
 
 ## ✨ Características
@@ -219,6 +219,22 @@ MIT License - Ver [LICENSE](LICENSE) para más detalles.
 - OpenAI por GPT-4o-mini
 - ServiceNow por la plataforma
 - Comunidad de Chrome Extensions
+
+## 📜 Licencia
+
+**Copyright © 2026 Franco David Gonzalez - Todos los derechos reservados**
+
+Este código está disponible públicamente **solo con fines educativos y de portfolio**.
+
+**NO está permitido:**
+- ❌ Uso comercial
+- ❌ Modificación del código
+- ❌ Distribución de versiones modificadas
+- ❌ Crear trabajos derivados
+
+Para solicitar permisos especiales, contactar: gonzalez.francodavid@hotmail.com
+
+Ver [LICENSE](LICENSE) para más detalles.
 
 ---
 
