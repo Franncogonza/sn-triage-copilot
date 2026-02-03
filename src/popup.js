@@ -305,13 +305,14 @@ document.addEventListener('DOMContentLoaded', async () => {
 
     // Generate Report - Conteo local sin GPT
     generateReportBtn.addEventListener('click', async () => {
-        if (currentTickets.length === 0) {
+        const tickets = state.getTickets();
+        if (tickets.length === 0) {
             setStatus(tr('errorNoTickets'), 'error');
             return;
         }
 
-    const counts = countTicketsByState(currentTickets);
-    const total = currentTickets.length;
+    const counts = countTicketsByState(tickets);
+    const total = tickets.length;
     const suma = counts.pruebaSuperada + counts.pendienteAclaracion + counts.pendienteUATest + counts.abierto + counts.enCurso + counts.rechazado;
     
     const report = `📊 TOTAL: ${total}
@@ -331,22 +332,23 @@ ${suma !== total ? `\n⚠️ Sin clasificar: ${total - suma}` : ''}`;
 
     // AI Analysis
     aiAnalysisBtn.addEventListener('click', async () => {
-        if (currentTickets.length === 0) {
+        const tickets = state.getTickets();
+        if (tickets.length === 0) {
             setStatus(tr('errorNoTickets'), 'error');
             return;
         }
 
         // Hacer conteo primero
-        const counts = countTicketsByState(currentTickets);
+        const counts = countTicketsByState(tickets);
 
         // Preparar datos para IA
-        const ticketsData = currentTickets.map(t => 
+        const ticketsData = tickets.map(t => 
             `${t.number}|${t.state}|${t.assigned_to || 'Sin asignar'}|${(t.short_description || '').slice(0, 80)}`
         ).join('\n');
 
         const prompt = `Genera un email ejecutivo profesional. Usa EXACTAMENTE estos números:
 
-Total: ${currentTickets.length}
+Total: ${tickets.length}
 ✅ Prueba Superada: ${counts.pruebaSuperada}
 ❓ Pendiente de Aclaración: ${counts.pendienteAclaracion}
 ⏳ Pendiente UA-Test: ${counts.pendienteUATest}
@@ -361,7 +363,7 @@ Formato EXACTO del email:
 
 Hola [Nombre],
 
-Comparto el estado operativo actualizado de [Nombre de la operativa] (${currentTickets.length} bugs):
+Comparto el estado operativo actualizado de [Nombre de la operativa] (${tickets.length} bugs):
 
 ✅ Prueba Superada: ${counts.pruebaSuperada}
 ❓ Pendiente de Aclaración: ${counts.pendienteAclaracion}
@@ -387,10 +389,11 @@ IMPORTANTE:
     // Settings
     settingsBtn.addEventListener('click', () => {
         // Cargar valores actuales en el formulario
-        configNombre.value = facturaConfig.nombre;
-        configDestinatario.value = facturaConfig.destinatario;
-        configCc.value = facturaConfig.cc;
-        configCuentaIndex.value = facturaConfig.cuentaIndex;
+        const config = state.getFacturaConfig();
+        configNombre.value = config.nombre;
+        configDestinatario.value = config.destinatario;
+        configCc.value = config.cc;
+        configCuentaIndex.value = config.cuentaIndex;
         
         // Mostrar panel de settings
         settingsPanel.style.display = 'block';
@@ -399,14 +402,14 @@ IMPORTANTE:
 
     saveSettingsBtn.addEventListener('click', async () => {
         // Guardar configuración
-        facturaConfig = {
+        const config = {
             nombre: configNombre.value.trim() || 'Franco Gonzalez',
             destinatario: configDestinatario.value.trim() || 'Mdprocurement@mindata.es',
             cc: configCc.value.trim() || 'gonzalez.francodavid@hotmail.com',
             cuentaIndex: parseInt(configCuentaIndex.value) || 2
         };
         
-        await saveFacturaConfig();
+        await state.saveFacturaConfig(config);
         setStatus(tr('successConfigSaved'), 'success');
         settingsPanel.style.display = 'none';
     });
@@ -463,16 +466,17 @@ IMPORTANTE:
         const anioActual = fecha.getFullYear();
 
         // Usar configuración guardada
-        const asunto = `${tr('invoiceSubject')} ${mesActual} ${anioActual} - ${facturaConfig.nombre}`;
+        const config = state.getFacturaConfig();
+        const asunto = `${tr('invoiceSubject')} ${mesActual} ${anioActual} - ${config.nombre}`;
         const cuerpo = `${tr('invoiceGreeting')} ${tr('invoiceBody')} ${mesActual} ${anioActual}
 ${tr('invoiceLink')} ${sanitizedLink}
 
 ${tr('invoiceClosing')}
 
-${facturaConfig.nombre}`;
+${config.nombre}`;
 
         // Crear Gmail compose URL con cuenta específica
-        const gmailUrl = `https://mail.google.com/mail/u/${facturaConfig.cuentaIndex}/?view=cm&fs=1&to=${encodeURIComponent(facturaConfig.destinatario)}&cc=${encodeURIComponent(facturaConfig.cc)}&su=${encodeURIComponent(asunto)}&body=${encodeURIComponent(cuerpo)}`;
+        const gmailUrl = `https://mail.google.com/mail/u/${config.cuentaIndex}/?view=cm&fs=1&to=${encodeURIComponent(config.destinatario)}&cc=${encodeURIComponent(config.cc)}&su=${encodeURIComponent(asunto)}&body=${encodeURIComponent(cuerpo)}`;
 
         // Abrir Gmail con cuenta de Mindata
         window.open(gmailUrl, '_blank', 'noopener,noreferrer');
