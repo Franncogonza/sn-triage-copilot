@@ -6,59 +6,123 @@
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
     <title>SN Triage Copilot Pro</title>
     <style>
+        :root {
+            --primary: #2563eb;
+            --primary-hover: #1d4ed8;
+            --primary-active: #1e40af;
+            --secondary: #64748b;
+            --secondary-hover: #475569;
+            --success: #10b981;
+            --success-bg: #d1fae5;
+            --success-border: #a7f3d0;
+            --error: #ef4444;
+            --error-bg: #fee2e2;
+            --error-border: #fecaca;
+            --info: #0ea5e9;
+            --info-bg: #e0f2fe;
+            --info-border: #bae6fd;
+            --bg-primary: #ffffff;
+            --bg-secondary: #f8fafc;
+            --border: #e2e8f0;
+            --text-primary: #0f172a;
+            --text-secondary: #64748b;
+            --text-muted: #94a3b8;
+            --radius: 8px;
+            --shadow-sm: 0 1px 2px 0 rgb(0 0 0 / 0.05);
+            --shadow-md: 0 4px 6px -1px rgb(0 0 0 / 0.1);
+            --transition: all 0.15s cubic-bezier(0.4, 0, 0.2, 1);
+        }
+
+        * {
+            box-sizing: border-box;
+        }
+
         body {
             width: 400px;
             min-height: 500px;
             margin: 0;
-            padding: 16px;
-            font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, sans-serif;
-            background: #f8f9fa;
+            padding: 20px;
+            font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', 'Inter', Roboto, sans-serif;
+            font-size: 14px;
+            line-height: 1.5;
+            color: var(--text-primary);
+            background: var(--bg-secondary);
+            -webkit-font-smoothing: antialiased;
+            -moz-osx-font-smoothing: grayscale;
         }
 
         .header {
             display: flex;
             align-items: center;
-            margin-bottom: 16px;
-            padding-bottom: 12px;
-            border-bottom: 2px solid #e9ecef;
+            justify-content: space-between;
+            margin-bottom: 20px;
+            padding-bottom: 16px;
+            border-bottom: 1px solid var(--border);
         }
 
         .header h1 {
             margin: 0;
-            font-size: 18px;
-            color: #2c3e50;
+            font-size: 20px;
+            font-weight: 700;
+            letter-spacing: -0.02em;
+            color: var(--text-primary);
+        }
+
+        .language-selector {
+            padding: 6px 10px;
+            border: 1px solid var(--border);
+            border-radius: 6px;
+            font-size: 12px;
+            font-weight: 600;
+            color: var(--text-primary);
+            background: var(--bg-primary);
+            cursor: pointer;
+            transition: var(--transition);
+        }
+
+        .language-selector:hover {
+            border-color: var(--primary);
+        }
+
+        .language-selector:focus {
+            outline: none;
+            border-color: var(--primary);
+            box-shadow: 0 0 0 3px rgba(37, 99, 235, 0.1);
         }
 
         .status {
             display: flex;
             align-items: center;
-            gap: 8px;
-            margin-bottom: 16px;
-            padding: 12px;
-            border-radius: 8px;
-            font-size: 14px;
+            gap: 10px;
+            margin-bottom: 20px;
+            padding: 12px 16px;
+            border-radius: var(--radius);
+            font-size: 13px;
+            font-weight: 500;
+            box-shadow: var(--shadow-sm);
+            transition: var(--transition);
         }
 
         .status.success {
-            background: #d4edda;
-            color: #155724;
-            border: 1px solid #c3e6cb;
+            background: var(--success-bg);
+            color: #065f46;
+            border: 1px solid var(--success-border);
         }
 
         .status.error {
-            background: #f8d7da;
-            color: #721c24;
-            border: 1px solid #f5c6cb;
+            background: var(--error-bg);
+            color: #991b1b;
+            border: 1px solid var(--error-border);
         }
 
         .status.loading {
-            background: #d1ecf1;
-            color: #0c5460;
-            border: 1px solid #bee5eb;
+            background: var(--info-bg);
+            color: #075985;
+            border: 1px solid var(--info-border);
         }
 
         .tickets-section {
-            margin-bottom: 16px;
+            margin-bottom: 20px;
         }
 
         .tickets-header {
@@ -70,164 +134,291 @@
 
         .tickets-count {
             font-weight: 600;
-            color: #495057;
+            font-size: 13px;
+            color: var(--text-secondary);
         }
 
         .tickets-list {
             max-height: 200px;
             overflow-y: auto;
-            border: 1px solid #dee2e6;
-            border-radius: 6px;
-            background: white;
+            border: 1px solid var(--border);
+            border-radius: var(--radius);
+            background: var(--bg-primary);
+            box-shadow: var(--shadow-sm);
+        }
+
+        .tickets-list::-webkit-scrollbar {
+            width: 6px;
+        }
+
+        .tickets-list::-webkit-scrollbar-track {
+            background: transparent;
+        }
+
+        .tickets-list::-webkit-scrollbar-thumb {
+            background: var(--border);
+            border-radius: 3px;
+        }
+
+        .tickets-list::-webkit-scrollbar-thumb:hover {
+            background: var(--text-muted);
         }
 
         .ticket-item {
-            padding: 8px 12px;
-            border-bottom: 1px solid #f1f3f4;
+            padding: 10px 14px;
+            border-bottom: 1px solid var(--border);
             font-size: 12px;
+            transition: var(--transition);
+        }
+
+        .ticket-item:hover {
+            background: var(--bg-secondary);
         }
 
         .ticket-item:last-child {
             border-bottom: none;
         }
 
-        .ticket-number {
+        .ticket-number-link {
             font-weight: 600;
-            color: #0066cc;
+            color: var(--primary);
+            text-decoration: none;
+            transition: var(--transition);
+        }
+
+        .ticket-number-link:hover {
+            color: var(--primary-hover);
+            text-decoration: underline;
         }
 
         .ticket-desc {
-            color: #6c757d;
-            margin-top: 2px;
+            color: var(--text-secondary);
+            margin-top: 4px;
             overflow: hidden;
             text-overflow: ellipsis;
             white-space: nowrap;
         }
 
+        .ticket-meta {
+            color: var(--text-muted);
+            font-size: 11px;
+            margin-top: 4px;
+        }
+
         .actions {
             display: flex;
             flex-direction: column;
-            gap: 8px;
+            gap: 10px;
         }
 
         .btn {
-            padding: 10px 16px;
+            padding: 11px 18px;
             border: none;
-            border-radius: 6px;
+            border-radius: var(--radius);
             font-size: 14px;
-            font-weight: 500;
+            font-weight: 600;
             cursor: pointer;
-            transition: all 0.2s;
+            transition: var(--transition);
+            box-shadow: var(--shadow-sm);
+            position: relative;
+            overflow: hidden;
+        }
+
+        .btn::before {
+            content: '';
+            position: absolute;
+            top: 50%;
+            left: 50%;
+            width: 0;
+            height: 0;
+            border-radius: 50%;
+            background: rgba(255, 255, 255, 0.2);
+            transform: translate(-50%, -50%);
+            transition: width 0.6s, height 0.6s;
+        }
+
+        .btn:active::before {
+            width: 300px;
+            height: 300px;
         }
 
         .btn-primary {
-            background: #007bff;
+            background: var(--primary);
             color: white;
         }
 
         .btn-primary:hover {
-            background: #0056b3;
+            background: var(--primary-hover);
+            transform: translateY(-1px);
+            box-shadow: var(--shadow-md);
+        }
+
+        .btn-primary:active {
+            background: var(--primary-active);
+            transform: translateY(0);
         }
 
         .btn-secondary {
-            background: #6c757d;
+            background: var(--secondary);
             color: white;
         }
 
         .btn-secondary:hover {
-            background: #545b62;
+            background: var(--secondary-hover);
+            transform: translateY(-1px);
+            box-shadow: var(--shadow-md);
+        }
+
+        .btn-secondary:active {
+            background: #334155;
+            transform: translateY(0);
         }
 
         .btn:disabled {
-            opacity: 0.6;
+            opacity: 0.5;
             cursor: not-allowed;
+            transform: none !important;
+            box-shadow: var(--shadow-sm) !important;
         }
 
         .analysis-result {
-            margin-top: 16px;
-            padding: 12px;
-            background: white;
-            border: 1px solid #dee2e6;
-            border-radius: 6px;
+            margin-top: 20px;
+            padding: 16px;
+            background: var(--bg-primary);
+            border: 1px solid var(--border);
+            border-radius: var(--radius);
             font-size: 13px;
-            line-height: 1.6;
+            line-height: 1.7;
             max-height: 300px;
             overflow-y: auto;
+            box-shadow: var(--shadow-sm);
+        }
+
+        .analysis-result::-webkit-scrollbar {
+            width: 6px;
+        }
+
+        .analysis-result::-webkit-scrollbar-track {
+            background: transparent;
+        }
+
+        .analysis-result::-webkit-scrollbar-thumb {
+            background: var(--border);
+            border-radius: 3px;
         }
 
         .settings-panel {
-            margin-top: 16px;
-            padding: 16px;
-            background: white;
-            border: 1px solid #dee2e6;
-            border-radius: 8px;
+            margin-top: 20px;
+            padding: 20px;
+            background: var(--bg-primary);
+            border: 1px solid var(--border);
+            border-radius: var(--radius);
+            box-shadow: var(--shadow-md);
         }
 
         .settings-panel h3 {
-            margin: 0 0 16px 0;
-            font-size: 16px;
-            color: #2c3e50;
+            margin: 0 0 20px 0;
+            font-size: 18px;
+            font-weight: 700;
+            letter-spacing: -0.01em;
+            color: var(--text-primary);
         }
 
         .settings-form {
             display: flex;
             flex-direction: column;
-            gap: 12px;
+            gap: 16px;
         }
 
         .form-group {
             display: flex;
             flex-direction: column;
-            gap: 4px;
+            gap: 6px;
         }
 
         .form-group label {
-            font-size: 12px;
+            font-size: 13px;
             font-weight: 600;
-            color: #495057;
+            color: var(--text-primary);
         }
 
         .form-group input {
-            padding: 8px;
-            border: 1px solid #ced4da;
-            border-radius: 4px;
-            font-size: 13px;
+            padding: 10px 12px;
+            border: 1px solid var(--border);
+            border-radius: var(--radius);
+            font-size: 14px;
+            color: var(--text-primary);
+            background: var(--bg-primary);
+            transition: var(--transition);
+        }
+
+        .form-group input:hover {
+            border-color: var(--text-muted);
         }
 
         .form-group input:focus {
             outline: none;
-            border-color: #007bff;
-            box-shadow: 0 0 0 2px rgba(0, 123, 255, 0.1);
+            border-color: var(--primary);
+            box-shadow: 0 0 0 3px rgba(37, 99, 235, 0.1);
         }
 
         .form-group small {
-            font-size: 11px;
-            color: #6c757d;
+            font-size: 12px;
+            color: var(--text-muted);
         }
 
         .settings-actions {
             display: flex;
-            gap: 8px;
-            margin-top: 8px;
+            gap: 10px;
+            margin-top: 12px;
+        }
+
+        .prio-high {
+            color: var(--error);
+            font-weight: 600;
+        }
+
+        .prio-med {
+            color: #f59e0b;
+            font-weight: 600;
+        }
+
+        .prio-low {
+            color: var(--text-muted);
+            font-weight: 500;
         }
 
         .loading-spinner {
-            border: 2px solid #f3f3f3;
-            border-top: 2px solid #3498db;
+            border: 2.5px solid var(--info-border);
+            border-top: 2.5px solid var(--primary);
             border-radius: 50%;
-            width: 16px;
-            height: 16px;
-            animation: spin 1s linear infinite;
+            width: 18px;
+            height: 18px;
+            animation: spin 0.8s cubic-bezier(0.4, 0, 0.2, 1) infinite;
         }
 
         @keyframes spin {
             0% {
                 transform: rotate(0deg);
             }
-
             100% {
                 transform: rotate(360deg);
             }
+        }
+
+        /* Feedback visual para botón copiado */
+        @keyframes pulse-success {
+            0%, 100% {
+                box-shadow: 0 0 0 0 rgba(16, 185, 129, 0.4);
+            }
+            50% {
+                box-shadow: 0 0 0 8px rgba(16, 185, 129, 0);
+            }
+        }
+
+        .btn-copied {
+            background: var(--success) !important;
+            animation: pulse-success 0.6s ease-out;
         }
 
         .empty-state {
@@ -275,7 +466,11 @@
 
 <body>
     <div class="header">
-        <h1>🚀 SN Triage Copilot Pro</h1>
+        <h1 id="app-title">🚀 SN Triage Copilot Pro</h1>
+        <select id="language-selector" class="language-selector">
+            <option value="en">🇬🇧 EN</option>
+            <option value="es">🇪🇸 ES</option>
+        </select>
     </div>
 
     <div id="status" class="status loading">
@@ -344,6 +539,7 @@
         </div>
     </div>
 
+    <script src="i18n.js"></script>
     <script src="popup.js"></script>
 </body>
 

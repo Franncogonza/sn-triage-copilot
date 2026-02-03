@@ -5,6 +5,51 @@
 
 document.addEventListener('DOMContentLoaded', async () => {
     // =====================
+    // i18n - Internationalization
+    // =====================
+    let currentLang = await getCurrentLanguage();
+    const languageSelector = document.getElementById('language-selector');
+    languageSelector.value = currentLang;
+    
+    // Translation helper
+    const tr = (key) => t(key, currentLang);
+    
+    // Update UI with translations
+    function updateUILanguage() {
+        // Update button texts
+        document.getElementById('generate-report-btn').textContent = tr('btnQuickCount');
+        document.getElementById('ai-analysis-btn').textContent = tr('btnGenerateEmail');
+        document.getElementById('factura-btn').textContent = tr('btnInvoice');
+        document.getElementById('copy-report-btn').textContent = tr('btnCopyReport');
+        document.getElementById('refresh-btn').textContent = tr('btnRefreshData');
+        document.getElementById('settings-btn').textContent = tr('btnSettings');
+        document.getElementById('save-settings-btn').textContent = tr('btnSaveSettings');
+        document.getElementById('cancel-settings-btn').textContent = tr('btnCancel');
+        
+        // Update settings panel
+        document.querySelector('#settings-panel h3').textContent = tr('settingsTitle');
+        document.querySelectorAll('#settings-panel label')[0].textContent = tr('settingsYourName');
+        document.querySelectorAll('#settings-panel label')[1].textContent = tr('settingsRecipient');
+        document.querySelectorAll('#settings-panel label')[2].textContent = tr('settingsCC');
+        document.querySelectorAll('#settings-panel label')[3].textContent = tr('settingsGmailIndex');
+        document.querySelector('#settings-panel small').textContent = tr('settingsGmailIndexHelp');
+        
+        // Update placeholders
+        configNombre.placeholder = tr('placeholderName');
+        configDestinatario.placeholder = tr('placeholderRecipient');
+        configCc.placeholder = tr('placeholderCC');
+        configCuentaIndex.placeholder = tr('placeholderGmailIndex');
+    }
+    
+    // Language selector change
+    languageSelector.addEventListener('change', async (e) => {
+        currentLang = e.target.value;
+        await setLanguage(currentLang);
+        updateUILanguage();
+        setStatus(tr('statusSuccess'), 'success');
+    });
+    
+    // =====================
     // DOM References
     // =====================
     const statusEl = document.getElementById('status');
@@ -26,6 +71,9 @@ document.addEventListener('DOMContentLoaded', async () => {
     const configDestinatario = document.getElementById('config-destinatario');
     const configCc = document.getElementById('config-cc');
     const configCuentaIndex = document.getElementById('config-cuenta-index');
+
+    // Initialize UI language
+    updateUILanguage();
 
     // =====================
     // State
@@ -94,12 +142,12 @@ document.addEventListener('DOMContentLoaded', async () => {
     async function getApiKey() {
         const result = await chrome.storage.local.get('OPENAI_API_KEY');
         if (!result.OPENAI_API_KEY) {
-            const key = prompt('🔑 Ingresá tu API Key de OpenAI:');
+            const key = prompt(tr('promptApiKey'));
             if (key) {
                 await chrome.storage.local.set({ OPENAI_API_KEY: key });
                 return key;
             }
-            setStatus('⚠️ API Key requerida', 'error');
+            setStatus(tr('errorApiKeyRequired'), 'error');
             return null;
         }
         return result.OPENAI_API_KEY;
@@ -253,7 +301,7 @@ document.addEventListener('DOMContentLoaded', async () => {
     // Generate Report - Conteo local sin GPT
     generateReportBtn.addEventListener('click', async () => {
         if (currentTickets.length === 0) {
-            setStatus('⚠️ No hay tickets para analizar', 'error');
+            setStatus(tr('errorNoTickets'), 'error');
             return;
         }
 
@@ -270,16 +318,16 @@ document.addEventListener('DOMContentLoaded', async () => {
 ❌ Rechazado: ${counts.rechazado}
 ${suma !== total ? `\n⚠️ Sin clasificar: ${total - suma}` : ''}`;
 
-        setStatus('✅ Informe generado', 'success');
+        setStatus(tr('successReportGenerated'), 'success');
         analysisResult.style.whiteSpace = 'pre-wrap';
-        analysisResult.textContent = `📊 Informe:\n\n${report}`;
+        analysisResult.textContent = `${tr('reportTitle')}\n\n${report}`;
         analysisResult.style.display = 'block';
     });
 
     // AI Analysis
     aiAnalysisBtn.addEventListener('click', async () => {
         if (currentTickets.length === 0) {
-            setStatus('⚠️ No hay tickets para analizar', 'error');
+            setStatus(tr('errorNoTickets'), 'error');
             return;
         }
 
@@ -354,7 +402,7 @@ IMPORTANTE:
         };
         
         await saveFacturaConfig();
-        setStatus('✅ Configuración guardada', 'success');
+        setStatus(tr('successConfigSaved'), 'success');
         settingsPanel.style.display = 'none';
     });
 
@@ -364,26 +412,25 @@ IMPORTANTE:
 
     // Factura Email
     facturaBtn.addEventListener('click', async () => {
-        const link = prompt('📎 Ingresá el link de la factura:');
+        const link = prompt(tr('promptInvoiceLink'));
         
         if (!link || !link.trim()) {
-            setStatus('⚠️ No ingresaste ningún link', 'error');
+            setStatus(tr('errorNoLink'), 'error');
             return;
         }
 
-        // Obtener mes y año actual en español
-        const meses = ['Enero', 'Febrero', 'Marzo', 'Abril', 'Mayo', 'Junio', 
-                       'Julio', 'Agosto', 'Septiembre', 'Octubre', 'Noviembre', 'Diciembre'];
+        // Obtener mes y año actual
+        const meses = translations[currentLang].months;
         const fecha = new Date();
         const mesActual = meses[fecha.getMonth()];
         const anioActual = fecha.getFullYear();
 
         // Usar configuración guardada
-        const asunto = `Honorarios ${mesActual} ${anioActual} - ${facturaConfig.nombre}`;
-        const cuerpo = `Buenos días estimados, adjunto factura periodo: ${mesActual} ${anioActual}
-Link de factura: ${link.trim()}
+        const asunto = `${tr('invoiceSubject')} ${mesActual} ${anioActual} - ${facturaConfig.nombre}`;
+        const cuerpo = `${tr('invoiceGreeting')} ${tr('invoiceBody')} ${mesActual} ${anioActual}
+${tr('invoiceLink')} ${link.trim()}
 
-Saludos,
+${tr('invoiceClosing')}
 
 ${facturaConfig.nombre}`;
 
@@ -393,9 +440,9 @@ ${facturaConfig.nombre}`;
         // Abrir Gmail con cuenta de Mindata
         window.open(gmailUrl, '_blank');
 
-        setStatus('✅ Gmail abierto con email listo', 'success');
+        setStatus(tr('successGmailOpened'), 'success');
         analysisResult.style.whiteSpace = 'pre-wrap';
-        analysisResult.textContent = `📧 Email preparado:\n\n${cuerpo}`;
+        analysisResult.textContent = `${tr('emailPrepared')}\n\n${cuerpo}`;
         analysisResult.style.display = 'block';
     });
 
@@ -404,31 +451,31 @@ ${facturaConfig.nombre}`;
         const text = analysisResult.innerText || analysisResult.textContent;
         
         if (!text || !text.trim()) {
-            setStatus('⚠️ No hay informe para copiar', 'error');
+            setStatus(tr('errorNothingToCopy'), 'error');
             return;
         }
 
         try {
             await navigator.clipboard.writeText(text);
-            setStatus('📋 Informe copiado', 'success');
+            setStatus(tr('successCopied'), 'success');
             
-            // Visual feedback
-            const original = copyReportBtn.innerHTML;
-            copyReportBtn.innerHTML = '✅ Copiado';
-            copyReportBtn.style.background = '#28a745';
+            // Feedback visual premium
+            copyReportBtn.classList.add('btn-copied');
+            const originalText = copyReportBtn.textContent;
+            copyReportBtn.textContent = tr('btnCopied');
             
             setTimeout(() => {
-                copyReportBtn.innerHTML = original;
-                copyReportBtn.style.background = '#6f42c1';
+                copyReportBtn.classList.remove('btn-copied');
+                copyReportBtn.textContent = originalText;
             }, 2000);
         } catch (error) {
-            setStatus('❌ Error al copiar', 'error');
+            setStatus(tr('errorCopyFailed'), 'error');
         }
     });
 
     // Refresh Data
     refreshBtn.addEventListener('click', async () => {
-        setStatus('🔄 Refrescando...', 'loading');
+        setStatus(tr('statusRefreshing'), 'loading');
         
         try {
             const [tab] = await chrome.tabs.query({ active: true, currentWindow: true });
@@ -441,7 +488,7 @@ ${facturaConfig.nombre}`;
                 setTimeout(loadData, 1500);
             });
         } catch (error) {
-            setStatus('Error al refrescar', 'error');
+            setStatus(tr('errorRefreshFailed'), 'error');
         }
     });
 
