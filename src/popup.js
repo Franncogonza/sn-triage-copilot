@@ -75,6 +75,7 @@ document.addEventListener('DOMContentLoaded', async () => {
     const configCc = document.getElementById('config-cc');
     const configCuentaIndex = document.getElementById('config-cuenta-index');
     const safeModeCheckbox = document.getElementById('safe-mode-checkbox');
+    const deleteApiKeyBtn = document.getElementById('delete-api-key-btn');
 
     // Initialize UI language
     updateUILanguage();
@@ -140,9 +141,17 @@ document.addEventListener('DOMContentLoaded', async () => {
     // =====================
     const setStatus = (msg, type) => {
         statusEl.className = `status ${type}`;
-        statusEl.innerHTML = type === 'loading' 
-            ? `<div class="loading-spinner"></div><span>${msg}</span>` 
-            : `<span>${msg}</span>`;
+        statusEl.textContent = ''; // Limpiar contenido
+        
+        if (type === 'loading') {
+            const spinner = document.createElement('div');
+            spinner.className = 'loading-spinner';
+            statusEl.appendChild(spinner);
+        }
+        
+        const span = document.createElement('span');
+        span.textContent = msg;
+        statusEl.appendChild(span);
     };
 
     const getPrioClass = (prio) => {
@@ -158,13 +167,31 @@ document.addEventListener('DOMContentLoaded', async () => {
         if (!result.OPENAI_API_KEY) {
             const key = prompt(tr('promptApiKey'));
             if (key) {
-                await chrome.storage.local.set({ OPENAI_API_KEY: key });
-                return key;
+                const trimmedKey = key.trim();
+                
+                // Validar formato de API Key de OpenAI
+                if (!trimmedKey.startsWith('sk-')) {
+                    setStatus('⚠️ API Key inválida. Debe comenzar con "sk-"', 'error');
+                    return null;
+                }
+                
+                if (trimmedKey.length < 20) {
+                    setStatus('⚠️ API Key demasiado corta. Verificá que sea correcta.', 'error');
+                    return null;
+                }
+                
+                await chrome.storage.local.set({ OPENAI_API_KEY: trimmedKey });
+                return trimmedKey;
             }
             setStatus(tr('errorApiKeyRequired'), 'error');
             return null;
         }
         return result.OPENAI_API_KEY;
+    }
+    
+    async function deleteApiKey() {
+        await chrome.storage.local.remove('OPENAI_API_KEY');
+        setStatus('🔑 API Key eliminada. Ingresá una nueva en el próximo análisis.', 'success');
     }
 
     async function loadFacturaConfig() {
@@ -424,6 +451,13 @@ IMPORTANTE:
 
     cancelSettingsBtn.addEventListener('click', () => {
         settingsPanel.style.display = 'none';
+    });
+
+    // Delete API Key
+    deleteApiKeyBtn.addEventListener('click', async () => {
+        if (confirm('¿Seguro que querés eliminar la API Key guardada?')) {
+            await deleteApiKey();
+        }
     });
 
     // Factura Email

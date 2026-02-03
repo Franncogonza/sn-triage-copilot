@@ -345,6 +345,17 @@ body {
     color: var(--text-primary);
 }
 
+.settings-panel h4 {
+    margin: 0 0 12px 0;
+    font-size: 15px;
+    font-weight: 600;
+    color: var(--text-primary);
+}
+
+.settings-section {
+    margin-bottom: 16px;
+}
+
 .settings-form {
     display: flex;
     flex-direction: column;

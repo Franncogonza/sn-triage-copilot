@@ -60,7 +60,21 @@
     <div id="analysis-result" class="analysis-result" style="display: none;"></div>
 
     <div id="settings-panel" class="settings-panel" style="display: none;">
-        <h3>⚙️ Configuración de Factura</h3>
+        <h3>⚙️ Configuración</h3>
+        
+        <div class="settings-section">
+            <h4>🔑 API Key de OpenAI</h4>
+            <button id="delete-api-key-btn" class="btn btn-secondary" style="background: #dc3545;">
+                🗑️ Eliminar API Key
+            </button>
+            <small style="display: block; margin-top: 8px; color: var(--text-muted);">
+                Elimina la API Key guardada. Se te pedirá una nueva en el próximo análisis.
+            </small>
+        </div>
+        
+        <hr style="margin: 20px 0; border: none; border-top: 1px solid var(--border);">
+        
+        <h4>📄 Configuración de Factura</h4>
         <div class="settings-form">
             <div class="form-group">
                 <label for="config-nombre">Tu Nombre:</label>
