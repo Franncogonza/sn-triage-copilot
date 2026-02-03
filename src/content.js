@@ -1,5 +1,5 @@
 /**
- * ServiceNow Triage Copilot Pro - Data Extraction Engine
+ * ServiceNow Triage Copilot - Data Extraction Engine
  * Content Script (MV3)
  *
  * Strategies:
@@ -55,9 +55,9 @@
     // -----------------------------
     // Helpers
     // -----------------------------
-    const log = (...args) => console.log(`[SN Copilot Pro ${CONFIG.INSTANCE_ID}]`, ...args);
-    const warn = (...args) => console.warn(`[SN Copilot Pro ${CONFIG.INSTANCE_ID}]`, ...args);
-    const err = (...args) => console.error(`[SN Copilot Pro ${CONFIG.INSTANCE_ID}]`, ...args);
+    const log = (...args) => console.log(`[SN Copilot ${CONFIG.INSTANCE_ID}]`, ...args);
+    const warn = (...args) => console.warn(`[SN Copilot ${CONFIG.INSTANCE_ID}]`, ...args);
+    const err = (...args) => console.error(`[SN Copilot ${CONFIG.INSTANCE_ID}]`, ...args);
 
     const normalize = (t) => (t || "").trim().toLowerCase();
 

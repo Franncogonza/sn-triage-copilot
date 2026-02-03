@@ -1,6 +1,6 @@
 /**
- * SN Triage Copilot Pro - Popup Script
- * Premium Edition - Clean & Functional
+ * SN Triage Copilot - Popup Script
+ * Clean & Functional
  */
 
 document.addEventListener('DOMContentLoaded', async () => {
@@ -495,7 +495,7 @@ ${facturaConfig.nombre}`;
     // =====================
     // Initialize
     // =====================
-    console.log('[Popup] SN Triage Copilot Pro - Premium Edition');
+    console.log('[Popup] SN Triage Copilot');
     loadFacturaConfig();
     loadData();
 });

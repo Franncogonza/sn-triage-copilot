@@ -1,13 +1,8 @@
 {
   "manifest_version": 3,
-  "name": "ServiceNow Triage Copilot Pro",
+  "name": "ServiceNow Triage Copilot",
   "version": "2.0.0",
-  "description": "Premium AI-powered ServiceNow ticket analysis - Front/UX classification",
-  "icons": {
-    "16": "icons/icon16.png",
-    "48": "icons/icon48.png",
-    "128": "icons/icon128.png"
-  },
+  "description": "AI-powered ticket classification and analysis for ServiceNow. Generate reports, executive emails, and invoices instantly.",
   "permissions": [
     "storage",
     "activeTab",
@@ -28,11 +23,6 @@
     }
   ],
   "action": {
-    "default_popup": "popup.html",
-    "default_icon": {
-      "16": "icons/icon16.png",
-      "48": "icons/icon48.png",
-      "128": "icons/icon128.png"
-    }
+    "default_popup": "popup.html"
   }
 }

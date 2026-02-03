@@ -6,7 +6,7 @@
 const translations = {
     en: {
         // Header
-        appTitle: 'SN Triage Copilot Pro',
+        appTitle: 'SN Triage Copilot',
         
         // Status messages
         statusLoading: 'Loading data...',
@@ -104,7 +104,7 @@ const translations = {
     
     es: {
         // Header
-        appTitle: 'SN Triage Copilot Pro',
+        appTitle: 'SN Triage Copilot',
         
         // Status messages
         statusLoading: 'Cargando datos...',

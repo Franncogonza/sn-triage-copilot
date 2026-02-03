@@ -1,6 +1,5 @@
 /**
- * SN Triage Copilot Pro - Background Service Worker
- * Premium Edition
+ * SN Triage Copilot - Background Service Worker
  */
 
 console.log('[Background] Service Worker iniciado');
