@@ -51,6 +51,7 @@ const translations = {
         // Validation messages
         errorApiKeyRequired: '⚠️ API Key required',
         errorLoadingData: 'Error loading data. Please try again.',
+        errorNoActiveTab: '⚠️ No active tab found',
         errorNoTickets: '⚠️ No tickets to analyze',
         errorNoLink: '⚠️ No link entered',
         errorNothingToCopy: '⚠️ Nothing to copy',
@@ -153,6 +154,7 @@ const translations = {
         // Validation messages
         errorApiKeyRequired: '⚠️ API Key requerida',
         errorLoadingData: 'Error al cargar datos. Intentá de nuevo.',
+        errorNoActiveTab: '⚠️ No se encontró una pestaña activa',
         errorNoTickets: '⚠️ No hay tickets para analizar',
         errorNoLink: '⚠️ No ingresaste ningún link',
         errorNothingToCopy: '⚠️ No hay informe para copiar',
