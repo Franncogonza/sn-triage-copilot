@@ -39,6 +39,9 @@ document.addEventListener('DOMContentLoaded', async () => {
         configDestinatario.placeholder = tr('placeholderRecipient');
         configCc.placeholder = tr('placeholderCC');
         configCuentaIndex.placeholder = tr('placeholderGmailIndex');
+        
+        // Update Safe Mode toggle
+        document.querySelector('.toggle-text').textContent = tr('safeModeLabel');
     }
     
     // Language selector change
@@ -71,9 +74,20 @@ document.addEventListener('DOMContentLoaded', async () => {
     const configDestinatario = document.getElementById('config-destinatario');
     const configCc = document.getElementById('config-cc');
     const configCuentaIndex = document.getElementById('config-cuenta-index');
+    const safeModeCheckbox = document.getElementById('safe-mode-checkbox');
 
     // Initialize UI language
     updateUILanguage();
+    
+    // Cargar preferencia de Modo Seguro
+    chrome.storage.local.get('SAFE_MODE', (result) => {
+        safeModeCheckbox.checked = result.SAFE_MODE || false;
+    });
+    
+    // Guardar preferencia de Modo Seguro
+    safeModeCheckbox.addEventListener('change', () => {
+        chrome.storage.local.set({ SAFE_MODE: safeModeCheckbox.checked });
+    });
 
     // =====================
     // State
@@ -257,11 +271,13 @@ document.addEventListener('DOMContentLoaded', async () => {
         analysisResult.style.display = 'none';
 
         try {
+            const safeMode = safeModeCheckbox.checked;
             const response = await new Promise((resolve, reject) => {
                 chrome.runtime.sendMessage({
                     type: "ANALYZE_WITH_GPT",
                     prompt: promptText,
-                    apiKey: apiKey
+                    apiKey: apiKey,
+                    safeMode: safeMode
                 }, (res) => {
                     if (chrome.runtime.lastError) {
                         reject(new Error(chrome.runtime.lastError.message));

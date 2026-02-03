@@ -100,6 +100,9 @@ const translations = {
         // Report labels
         reportTitle: '📊 Report:',
         emailPrepared: '📧 Email prepared:',
+        
+        // Safe Mode
+        safeModeLabel: '🔒 Safe Mode (filters emails, IPs, URLs)',
     },
     
     es: {
@@ -198,6 +201,9 @@ const translations = {
         // Report labels
         reportTitle: '📊 Informe:',
         emailPrepared: '📧 Email preparado:',
+        
+        // Safe Mode
+        safeModeLabel: '🔒 Modo Seguro (filtra emails, IPs, URLs)',
     }
 };
 
